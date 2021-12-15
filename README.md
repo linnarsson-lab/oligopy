@@ -39,6 +39,7 @@ Or under csh to create it anew:
 set BLASTDB=$HOME/blastdb
 A better approach is to have the system automatically set these variables upon login, by modifying the .bash_profile or .cshrc file.
 Once they are set, the system knows where to call BLAST programs, and the invoked program will know where to look for the database files. Note that with BLASTDB unspecified, BLAST+ programs only search the working directory, i.e. the directory where BLAST command is issued. For more details about configuring BLAST+, please see http://www.ncbi.nlm.nih.gov/books/NBK279695/.
+
 # 1.2. Make blast database
 Currently, oligopy only supports the transcriptome or genome with ENSEMBL format, so that the transcriptome and genome should be downloaded from the ensembl database in fasta format:
 
