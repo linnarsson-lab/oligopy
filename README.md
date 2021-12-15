@@ -1,12 +1,12 @@
 # oligopy
 
-## 1. Install oligopy components
+# 1. Install oligopy components
 
 Oligopy requires different programs: blast+ (command line blast) and other pip installable packages: primer3, pandas, numpy, joblib, biopython and pyensembl.
 
 The installation of blast+ will require the creation of the desired databases for the comparison of each probe retrieved.
 
-# 1.1. Install Blast Command Line Tool
+## 1.1. Install Blast Command Line Tool
 NCBI provides command line standalone BLAST+ programs (based on the NCBI C++ toolkit) as a single compressed package. The package is available for a variety of computer platforms (hardware/operating system combinations) at:
 ftp://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/
 The archives for Linux and Mac OSX are gzip-compressed tar files named using the following convention:
@@ -40,7 +40,7 @@ set BLASTDB=$HOME/blastdb
 A better approach is to have the system automatically set these variables upon login, by modifying the .bash_profile or .cshrc file.
 Once they are set, the system knows where to call BLAST programs, and the invoked program will know where to look for the database files. Note that with BLASTDB unspecified, BLAST+ programs only search the working directory, i.e. the directory where BLAST command is issued. For more details about configuring BLAST+, please see http://www.ncbi.nlm.nih.gov/books/NBK279695/.
 
-# 1.2. Make blast database
+## 1.2. Make blast database
 Currently, oligopy only supports the transcriptome or genome with ENSEMBL format, so that the transcriptome and genome should be downloaded from the ensembl database in fasta format:
 
 Mouse ncRNA and cDNA:
@@ -60,7 +60,7 @@ In the terminal, move to the blastdb folder and create both databases with the f
 makeblastdb -in Mus_musculus_transcriptome_DB.fa -parse_seqids -dbtype nucl
 makeblastdb -in Homo_sapiens_transcriptome_DB.fa -parse_seqids -dbtype nucl
 
-## 2. Run oligopy: parameters.
+# 2. Run oligopy: parameters.
 
 Example run with default parameters: python oligopy.py -query codebookMouse448.xlsx -db Mus_musculus.fa -ncores 12 -db_species mouse -probe_type twist -out Probes
 
