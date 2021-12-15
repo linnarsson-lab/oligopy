@@ -60,6 +60,10 @@ In the terminal, move to the blastdb folder and create both databases with the f
 makeblastdb -in Mus_musculus_transcriptome_DB.fa -parse_seqids -dbtype nucl
 makeblastdb -in Homo_sapiens_transcriptome_DB.fa -parse_seqids -dbtype nucl
 
+## 1.3. Custom sequences
+
+The files HUMAN_NCBI_GENES_retrieved.fasta.masked and MOUSE_NCBI_GENES_retrieved.fasta.masked contain NCBI main isoforms for most of the transcriptome. Oligopy will try to retrieve desired genes from these fasta files (for human or mouse respectively). If not in the file, the sequence can be added manually to these files or oligopy will try to retrieve it automatically from ensembl using pyensembl.
+
 # 2. Run oligopy: parameters.
 
 Example run with default parameters: python oligopy.py -query codebookMouse448.xlsx -db Mus_musculus.fa -ncores 12 -db_species mouse -probe_type twist -out Probes
