@@ -18,7 +18,9 @@ To install, simply extract the downloaded package after placing it under a desir
 
 $ tar zxvpf ncbi-blast+#.#.#-x64-linux.tar.gz
 or
+
 $ gunzip -d ncbi-blast-#.#.#+-x64-linux.tar.gz
+
 $ tar xvpf ncbi-blast-#.#.#+-x64-linux.tar
 
 Successful execution of the above commands installs the package and generates a new ncbi-blast-#.#.#+ directory under the working directory selected. This new directory contains the bin and doc subdirectories, as well as a VERSION file. The bin subdirectory contains the programs listed below.
@@ -27,16 +29,22 @@ Under bash, the following command appends the path to the new BLAST bin director
 
 $ export PATH=$PATH:$HOME/ncbi-blast-#.#.#+/bin
 The equivalent command under csh is:
+
 $ setenv PATH ${PATH}:/home/tao/ncbi-blast-#.#.#+/bin
 The modified $PATH can be examined using echo (added portion underlined):
+
 $ echo $PATH
 /usr/X11R6/bin:/usr/bin:/bin:/usr/local/bin:/opt/local/bin:/home/tao/ncbi-blast-2.2.29+/bin
+
 To manage available BLAST databases, create a directory to store them:
 $ mkdir $HOME/blastdb
+
 Similar approaches described above can be used to set the BLASTDB value under bash:
 $ export BLASTDB=$HOME/blastdb
+
 Or under csh to create it anew:
 set BLASTDB=$HOME/blastdb
+
 A better approach is to have the system automatically set these variables upon login, by modifying the .bash_profile or .cshrc file.
 Once they are set, the system knows where to call BLAST programs, and the invoked program will know where to look for the database files. Note that with BLASTDB unspecified, BLAST+ programs only search the working directory, i.e. the directory where BLAST command is issued. For more details about configuring BLAST+, please see http://www.ncbi.nlm.nih.gov/books/NBK279695/.
 
