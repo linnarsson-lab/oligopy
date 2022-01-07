@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from Bio.Seq import Seq
 from Bio import SeqIO
+import os
 
 def generate_fasta(inputexcel,species):
     Ensembl = EnsemblRelease(100,species)
@@ -23,7 +24,6 @@ def generate_fasta(inputexcel,species):
     fileout = open(inputexcel.split('.')[0]+'Markers.fasta','w')
 
     if species == 'human':
-        import os
         p = os.path.dirname(os.path.abspath(__file__))
         p = os.path.join(p,"HUMAN_NCBI_GENES_retrieved.fasta.masked")
         for record in SeqIO.parse(p, "fasta"):
@@ -34,16 +34,13 @@ def generate_fasta(inputexcel,species):
                 fileout.write('>'+str(record.id)+'\n'+str(record.seq)+'\n')
     elif species == 'mouse':
         p = os.path.dirname(os.path.abspath(__file__))
-        p = os.path.join(p,"/MOUSE_NCBI_GENES_retrieved.fasta.masked")
+        p = os.path.join(p,"MOUSE_NCBI_GENES_retrieved.fasta.masked")
         for record in SeqIO.parse(p, "fasta"):
             gene = record.id.split('|')[0].split('_')[0]
             if gene in list(genesbarcodes['Gene']):
                 #print(gene)
                 dic_seq[gene] = record.seq
                 fileout.write('>'+str(record.id)+'\n'+str(record.seq)+'\n')
-
-            
-
     
     tsl = {1:100,2:80,3:70,4:60,5:50,None:0}
     isproteincoding = {True:100,False:0}
