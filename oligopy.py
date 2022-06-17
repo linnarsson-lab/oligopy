@@ -293,6 +293,48 @@ def obtainBooleanlist2(g, dataframe, dic):
         # int((float(final_loc) /1000)* 18 or 20
         if sum(gene_boolean_list) >= max_probes:
             break
+    if sum(gene_boolean_list ) < 12:
+        print('Too few probes for {}, relaxing parameters overlap and Noff to -24 and 18'.format(g))
+        for identity in ids:
+            if sum(gene_boolean_list) >= max_probes:
+                break
+            for pnas in list_n:
+                gene_boolean_list = []
+                added_genes = {}
+                overlap = -3
+                for i in range(0, data_gene.shape[0]):
+                    if sum(gene_boolean_list) >= max_probes:
+                        break
+                    loc, s, PNAS, ID, genes_off, genes_off_ident = data_gene.iloc[i][["Location", "Size", "PNAS", "Blast Cutoff", "Other_Hits","Identity_Other_Hits"]]
+                    #print(genes_off[0])
+                    #genes_off = [x[1:]for x in genes_off]
+                    is_gene_too_much = False
+                    if genes_off == 0:
+                        genes_off = []
+                    if ID >= 65:
+                        for g_off, g_off_id in zip(genes_off, genes_off_ident):
+                            if g_off in added_genes and added_genes[g_off] >= 18 and float(g_off_id)/s > 0.65:
+                                is_gene_too_much = True
+
+                    loc = data_gene.iloc[i]["Location"]
+
+                    if loc > (overlap + -24) and PNAS >= pnas and ID <= identity and is_gene_too_much==False and sum(gene_boolean_list) < 45:
+                        overlap = loc + s
+                        gene_boolean_list.append(True)
+                        for g_off2 in genes_off:
+                            if g_off2 not in added_genes:
+                                added_genes[g_off2] = 1
+                            else:
+                                added_genes[g_off2] += 1
+                    else:
+                        gene_boolean_list.append(False)
+                # int((float(final_loc) /1000) * 18 or 40
+                if sum(gene_boolean_list) >= max_probes:
+                    break
+            # int((float(final_loc) /1000)* 18 or 20
+            if sum(gene_boolean_list) >= max_probes:
+                break 
+
     gene_boolean_list += [False]*(dataframe[g].shape[0]-len(gene_boolean_list))
     dic[g] = gene_boolean_list
     print(len(gene_boolean_list))
