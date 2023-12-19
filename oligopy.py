@@ -4,11 +4,10 @@ import TileGene
 from retrieveGenes import generate_fasta
 import timeit
 import os
-from Bio.SeqUtils import GC
+from Bio.SeqUtils import gc_fraction
 from Bio.Seq import Seq
 from Bio import SeqIO, SeqRecord
 import numpy as np
-
 
 totalstart = timeit.default_timer()
 os.system("mkdir Results")
@@ -69,7 +68,7 @@ print("Probes after GC filter: " + str(data_fasta.shape[0]))
 if padlock == 'T':
     data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: x[14:16] == 'CT' or  x[14:16] == 'CA' or  x[14:16] == 'TA' or x[14:16] == 'GA' or x[14:16] == 'AT' or x[14:16] == 'GT')]
     #data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: x[17] != 'C')]
-    data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: (MGC > GC(x[:15]) > mGC) and  (MGC > GC(x[16:]) > mGC))]
+    data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: (MGC > gc_fraction(x[:15]) > mGC) and  (MGC > gc_fraction(x[16:]) > mGC))]
 
 hdf5 = pd.HDFStore("Results/Processing/FilteredSequences.h5")
 hdf5.put('data1',data_fasta,format="table",data_columns=True)
