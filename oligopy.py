@@ -316,10 +316,10 @@ def obtainBooleanlist2(g, dataframe, dic):
                     not_overlap = False
 
                 if not_overlap and PNAS >= pnas and ID <= identity and is_gene_too_much==False and len(selected_probes) < 45:
-                    print(selected_locs_tmp)
-                    print('the loc', loc)
-                    print(((loc- s) - selected_locs_tmp[index_loc - 1]))
-                    print((selected_locs_tmp[index_loc + 1] - (loc + s)))
+                    #print(selected_locs_tmp)
+                    #print('the loc', loc)
+                    #print(((loc- s) - selected_locs_tmp[index_loc - 1]))
+                    #print((selected_locs_tmp[index_loc + 1] - (loc + s)))
                     overlap = loc + s
                     #print(selected_locs)
                     for g_off2 in genes_off:
