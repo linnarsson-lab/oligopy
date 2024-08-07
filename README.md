@@ -60,14 +60,14 @@ Once they are set, the system knows where to call BLAST programs, and the invoke
 Currently, oligopy only supports the transcriptome or genome with ENSEMBL format, so that the transcriptome and genome should be downloaded from the ensembl database in fasta format:
 
 Mouse ncRNA and cDNA:  
-ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/ncrna/  
-ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/cdna/  
+https://ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/ncrna/  
+https://ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/cdna/  
 
 Human ncRNA and cDNA:  
-ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/ncrna/  
-ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/cdna/  
+https://ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/ncrna/  
+https://ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/cdna/  
   
-Drosophila ncRNA and cDNA:
+Drosophila ncRNA and cDNA:  
 https://ftp.ensembl.org/pub/release-112/fasta/drosophila_melanogaster/ncrna/
 https://ftp.ensembl.org/pub/release-112/fasta/drosophila_melanogaster/cdna/
 
