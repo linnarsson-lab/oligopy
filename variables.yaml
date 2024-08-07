@@ -1,0 +1,7 @@
+# Executable for RepeatMasker. Install from: https://www.repeatmasker.org/ and paste executable path here
+RepeatMasker: /usr/local/RepeatMasker/RepeatMasker
+
+#Primer sequences to add to sequences
+forward_primer: AATGATACGGCGACCACCGAGATCT
+#Will be reverse complemented before adding to probe. 
+reverse_primer: CAAGCAGAAGACGGCATACGAGAT

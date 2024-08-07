@@ -5,7 +5,7 @@ from Bio.Seq import Seq
 from Bio import SeqIO
 import os
 
-def generate_fasta(inputexcel,species):
+def generate_fasta(inputexcel, species, folder=''):
     Ensembl = EnsemblRelease(100,species)
     genesbarcodes = pd.read_excel(inputexcel)
     genesbarcodes = genesbarcodes[genesbarcodes['Gene'] != 'nan']
@@ -21,7 +21,11 @@ def generate_fasta(inputexcel,species):
 
     dic_seq = {}
 
-    fileout = open(inputexcel.split('.')[0]+'Markers.fasta','w')
+    if folder != '':
+        if not folder.endswith('/'):
+            folder = f'{folder}/'
+            
+    fileout = open(f'{folder}{inputexcel.split(".")[0]}_Markers.fasta', 'w')
 
     if species == 'human':
         p = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +39,16 @@ def generate_fasta(inputexcel,species):
     elif species == 'mouse':
         p = os.path.dirname(os.path.abspath(__file__))
         p = os.path.join(p,"MOUSE_NCBI_GENES_retrieved.fasta.masked")
+        for record in SeqIO.parse(p, "fasta"):
+            gene = record.id.split('|')[0].split('_')[0]
+            if gene in list(genesbarcodes['Gene']):
+                #print(gene)
+                dic_seq[gene] = record.seq
+                fileout.write('>'+str(record.id)+'\n'+str(record.seq)+'\n')
+    elif species == 'drosophila':
+        print('\n\nNEW SPECIES: DROSOPHILA!!!\n\n')
+        p = os.path.dirname(os.path.abspath(__file__))
+        p = os.path.join(p,"DROSOPHILA_NCBI_GENES_retrieved.fasta.masked") #TODO: NOT SURE THIS IS CORRECT
         for record in SeqIO.parse(p, "fasta"):
             gene = record.id.split('|')[0].split('_')[0]
             if gene in list(genesbarcodes['Gene']):

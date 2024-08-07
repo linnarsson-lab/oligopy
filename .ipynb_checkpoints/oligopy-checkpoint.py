@@ -8,37 +8,20 @@ from Bio.SeqUtils import gc_fraction
 from Bio.Seq import Seq
 from Bio import SeqIO, SeqRecord
 import numpy as np
-import datetime
-import io
-import yaml
-import sys 
-    
+
 totalstart = timeit.default_timer()
-
-#Output folders
-date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-result_folder = f'Oligopy_Results_{date}'
-processing_folder = f'{result_folder}/Processing'
-os.system(f"mkdir {result_folder}")
-os.system(f"mkdir {processing_folder}")
-
-#User input
+os.system("mkdir Results")
+os.system("mkdir Results/Processing")
 dic_input = argparseinput.arginput()
 input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type']
 
-#Defined variables
-with io.open(f'{os.path.dirname(os.path.realpath(sys.argv[0]))}/variables.yaml', 'r') as stream:
-    defined_variables = yaml.safe_load(stream)
-
 assign_tails = False
 if input_file.count('.xlsx'):
-    assert db_species in ['human', 'mouse', 'drosophila']
+    assert db_species == 'human' or db_species =='mouse'
 
-    generate_fasta(input_file, db_species, result_folder) 
+    generate_fasta(input_file,db_species) 
     codebook = pd.read_excel(input_file)
-    #Write codebook to output folder
-    codebook.to_excel(f'{result_folder}/{input_file}')
-    input_file = result_folder + '/' +  input_file.split('.')[0]+'_Markers.fasta'
+    input_file = input_file.split('.')[0]+'Markers.fasta'
     assign_tails= True
 
 if padlock == 'T':
@@ -47,17 +30,16 @@ if padlock == 'T':
 assert os.path.isfile(db), "Enter the right path to blastdb"
 
 if mask == "T":
-    assert db_species in ['human', 'mouse', 'drosophila']
-    #Run repeatmasker
-    os.system(f"{defined_variables['RepeatMasker']} -species {db_species} {input_file} -dir {processing_folder}")
-    #Use masked fasta file
-    if os.path.isfile(processing_folder + input_file.split(".")[0] + ".fasta.masked"):
-        input_file = processing_folder + input_file.split(".")[0] + ".fasta.masked"
+    if db_species == 'human':
+        os.system("/usr/local/RepeatMasker/RepeatMasker -species mouse " + input_file + " -dir Results/Processing")
+    elif db_species == 'mouse':
+        os.system("/usr/local/RepeatMasker/RepeatMasker -species human " + input_file + " -dir Results/Processing")
+    if os.path.isfile("Results/Processing/"+ input_file.split(".")[0] + ".fasta.masked"):
+        input_file = "Results/Processing/" + input_file.split(".")[0] + ".fasta.masked"
 else:
     input_file = input_file
-print(f'Input file: {input_file}')
 
-print("\n...Making candidate probes...")
+print(input_file)
 if dic_input["end"] == None:
     data_fasta = TileGene.GetDataFrameProbes(input_file, size=size, MinSize=minSize, MaxSize=maxSize, start=start,
                                               end=None, TmMin=tmin, cat1_conc=salt, cores_n = ncores)
@@ -65,10 +47,9 @@ else:
     data_fasta = TileGene.GetDataFrameProbes(input_file, size=size, MinSize=minSize, MaxSize=maxSize, start=start,
                                               end=end, TmMin=tmin, cat1_conc=salt, cores_n = ncores)
 
-
-print("\n...Filtering probes on sequence properties...")
-#os.system("mkdir Results")
-#os.system("mkdir Results/Processing")
+print("...Probes Obtained...")
+os.system("mkdir Results")
+os.system("mkdir Results/Processing")
 print(data_fasta.shape)
 
 print("Initial Probe number: " + str(data_fasta.shape[0]))
@@ -89,7 +70,7 @@ if padlock == 'T':
     #data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: x[17] != 'C')]
     data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: (MGC > gc_fraction(x[:15]) > mGC) and  (MGC > gc_fraction(x[16:]) > mGC))]
 
-hdf5 = pd.HDFStore(f"{processing_folder}/FilteredSequences.h5")
+hdf5 = pd.HDFStore("Results/Processing/FilteredSequences.h5")
 hdf5.put('data1',data_fasta,format="table",data_columns=True)
 hdf5.close()
 #data_fasta.to_csv("Results/Processing/FilteredSequences.csv")
@@ -111,8 +92,8 @@ for cores in range(0,int(num_threads)):
         end = data_fasta.shape[0]
 
     start,end = int(start),int(end)
-    output_fasta = f"{processing_folder}/output_to_blast3_core"+ str(cores) + ".fasta"
-    out_file_blast = f"{processing_folder}/outputBlast_core"+ str(cores) + ".fasta"
+    output_fasta = "Results/Processing/output_to_blast3_core"+ str(cores) + ".fasta"
+    out_file_blast = "Results/Processing/outputBlast_core"+ str(cores) + ".fasta"
     list_out_files.append(out_file_blast)
     #print('hahah',data_fasta.iloc[50],start,end)
 
@@ -143,7 +124,7 @@ def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
 
 
 from joblib import Parallel, delayed
-print("\n...Blasting Probes...")
+print("...Blasting Probes...")
 start = timeit.default_timer()
 result1 = Parallel(n_jobs=int(num_threads))(delayed(Blast)(list_files[i], list_out_files[i], data_fasta_data_frames[i], db, db_species) for i in range(0, int(num_threads)))
 stop = timeit.default_timer()
@@ -160,7 +141,7 @@ def blastingclass(max_blast_hit_n):
         return 100
 
 new_merged_data_frame['Blast Cutoff'] = list(map(blastingclass , list((((new_merged_data_frame["Max_Other_Hit_Identity"] / new_merged_data_frame["Size"])*100)))))
-new_merged_data_frame.to_csv(f'{result_folder}/probesunique.csv')
+new_merged_data_frame.to_csv('probesunique.csv')
 
 #hdf5 = pd.HDFStore("Results/Processing/UniqueIsoformProbes.h5")
 #hdf5.put('data1',data_fasta,format="table",data_columns=True)
@@ -231,7 +212,6 @@ data_fasta_PNAS0 = pd.concat([data_fasta_PNAS0, datframe_rules0], axis=1)
 
 list_PNAS = [data_fasta_PNAS5, data_fasta_PNAS4, data_fasta_PNAS3, data_fasta_PNAS2, data_fasta_PNAS1, data_fasta_PNAS0]
 
-print('Applying PNAS rules for sequence.')
 print("Probes after PNAS " + "".join(PNAS_rules[0]) + ": " + str(data_fasta_PNAS5.shape[0]))
 print("Probes after PNAS " + "".join(PNAS_rules[1]) + ": " + str(data_fasta_PNAS4.shape[0]))
 print("Probes after PNAS " + "".join(PNAS_rules[2]) + ": " + str(data_fasta_PNAS3.shape[0]))
@@ -245,7 +225,7 @@ data1["PNAS"] = data1["PNAS"].apply(pd.to_numeric)
 data1 = data1.sort_values(["Gene", "Location", "PNAS", "Blast Cutoff"], ascending=[True, True, False, True])
 genes = data1["Gene"].unique()
 
-data1.to_csv(f"{processing_folder}/AllProbes" + dic_input["out"]+".csv")
+data1.to_csv("Results/Processing/AllProbes" + dic_input["out"]+".csv")
 #################################################################
 #print(data1)
 
@@ -253,7 +233,7 @@ list_n = [12345, 1245, 124, 24, 4, 0]
 ids = [60, 85, 100]
 import timeit
 print("Remaining Probes after blast: " + str(data1.shape[0]))
-print("\n...Eliminating cross-hybridizing probes and constructing final probe set...")
+print("...Eliminating cross-hybridazing probes and constructing final probe set...")
 start = timeit.default_timer()
 dic_genes = {}
 
@@ -312,8 +292,8 @@ def obtainBooleanlist2(g, dataframe, dic):
         # int((float(final_loc) /1000)* 18 or 20
         if sum(gene_boolean_list) >= max_probes:
             break
-    if sum(gene_boolean_list) < 12:
-        print(f'Found only {sum(gene_boolean_list)} probes for {g}, relaxing parameters overlap and Noff to -24 and 18')
+    if sum(gene_boolean_list ) < 12:
+        print('Too few probes for {}, relaxing parameters overlap and Noff to -24 and 18'.format(g))
         for identity in ids:
             if sum(gene_boolean_list) >= max_probes:
                 break
@@ -411,8 +391,8 @@ data_features = data_features.set_index([["Number of Probes", "Min PNAS Rules", 
                                               "STD DeltaG", "Mean Max Other Hit", "Max Max Other Hit"]])
 
 ###Output
-data_features.to_csv(f"{result_folder}/{dic_input['out']}_features_probes.csv")
-output_probeset_fasta = f"{result_folder}/{dic_input['out']}_probeset.fasta"
+data_features.to_csv("Results/"+dic_input["out"] + "_features_probes.csv")
+output_probeset_fasta = "Results/" + dic_input["out"] +"_probeset.fasta"
 out_fasta_probeset = open(output_probeset_fasta,'w')
 for i in range(0, data1.shape[0]):
     probe = str(data1.iloc[i]["Probe"])
@@ -421,26 +401,25 @@ for i in range(0, data1.shape[0]):
     out_fasta_probeset.write(line2)
 out_fasta_probeset.close()
 
-#print(data1)
+print(data1)
 try:
-    probe_spec_data_fname = f"{result_folder}/{dic_input['out']}.csv"
-    data1.to_csv(probe_spec_data_fname)
-    print(f'Probes and properties writen to: {probe_spec_data_fname}')
+    data1.to_csv("Results/"+dic_input["out"]+".csv")
 except:
-    print("Problem writing file")
+    print("Problem")
+
+totalfinal = timeit.default_timer()
+print("Total time" + str(totalfinal-totalstart))
 
 ################################################ Assign Tails to Generated probeset ##################################################################
 
 if assign_tails:
 
-    print('\n...Assigning shuffeled tails...')
-    print('\nWARNING: USING NEW VERSION OF P5 AND P7 PCR PRIMERS!')
-    fw = defined_variables['forward_primer']
-    rvrc = str(Seq(defined_variables['reverse_primer']).reverse_complement())
-    print(f'Forward: {fw}. Reverse RC: {rvrc}\n')
+    print('Assigning tails')
+    P5fw = 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT'
+    P7rc = str(Seq('GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT').reverse_complement())
 
     dicMarkers = {}
-    for record in SeqIO.parse(f"{result_folder}/{dic_input['out']}_probeset.fasta", "fasta"):
+    for record in SeqIO.parse("Results/"+ dic_input["out"]+"_probeset.fasta", "fasta"):
         gene = record.id.split('|')[0].split('_')[0]
         if gene not in dicMarkers:
             dicMarkers[gene] = [record.seq]
@@ -452,7 +431,7 @@ if assign_tails:
     tofasta = []
 
     codebook = codebook[(pd.isna(codebook.Gene) == 0).values]
-    #print(codebook)
+    print(codebook)
 
     for row in codebook.iterrows():
         row = row[1]
@@ -463,20 +442,16 @@ if assign_tails:
         gene_probeSet =  []
         if gene in dicMarkers:
             for p in dicMarkers[gene]:
-                #print(p)
+                print(p)
                 rand = np.random.choice([0,1,2,3,4,5],replace=False,size=6)
                 tails = ordertails[rand].tolist()
                 tail5 = sep.join(tails[:3])
                 tail3 = sep.join(tails[3:])
 
                 if probe_type == 'twist':
-                    full_length_probe = fw +tail5+sep+str(p)+sep+tail13+ rvrc
+                    full_length_probe = P5fw +tail5+sep+str(p)+sep+tail3+P7rc
                 elif probe_type == 'opool':
                     full_length_probe = str(p)+sep+tail5+sep+tail3
-                elif probe_type == 'opool_amp':
-                    full_length_probe = fw + str(p)+sep+tail5+sep+tail3 + rvrc
-                else:
-                    raise Exeption(f'`Probe_type` not valid. Choose from `twist`, `opool` or `opool_amp`. Not: {probe_type}')
 
                 r= SeqRecord.SeqRecord(Seq(full_length_probe),id=gene,description='Readouts'+ '|' + '-'.join(tails) )
                 tofasta.append(r)
@@ -485,28 +460,17 @@ if assign_tails:
                 genes_all_probes += [gene]
             all_probes += gene_probeSet
     
+    import datetime
+    date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    with open(f'{result_folder}/ProbesOrder{dic_input["out"]}{date}', "w") as output_handle:    
+    with open('Results/ProbesOrder{}{}'.format(dic_input["out"],date), "w") as output_handle:
         SeqIO.write(tofasta, output_handle, "fasta")
 
-    #Format output for Twist Bioscience order sheet
-    if probe_type == 'twist':
-        data_genesprobes = pd.DataFrame({'Genes':genes_all_probes,'Sequences':all_probes})
-        #print(data_genesprobes)
-        order_form_fname = f'{result_folder}/{dic_input["out"]}_{date}_Twist.xlsx'
-        with pd.ExcelWriter(order_form_fname) as writer:
-            data_genesprobes.to_excel(writer)
-        print(f'Twist Bioscience order form written to: {order_form_fname}')
-    #Format output for IDT Opool order sheet
-    elif probe_type in ['opool', 'opool_amp']:
-        data_genesprobes = pd.DataFrame({'Pool name': [dic_input["out"]]*len(all_probes), 'Genes':genes_all_probes, 'Sequence':all_probes})
-        #print(data_genesprobes)
-        order_form_fname = f'{result_folder}/{dic_input["out"]}_{date}_IDT.xlsx'
-        with pd.ExcelWriter(order_form_fname) as writer:
-            data_genesprobes.to_excel(writer)
-        print(f'IDT order form written to: {order_form_fname}')
+    data_genesprobes = pd.DataFrame({'Genes':genes_all_probes,'Sequences':all_probes})
+    print(data_genesprobes)
+    with pd.ExcelWriter('Results/{}{}.xlsx'.format(dic_input["out"],date)) as writer:
+        data_genesprobes.to_excel(writer)
 
-totalfinal = timeit.default_timer()
-print("Total time: " + str(totalfinal-totalstart))
+
 
     
