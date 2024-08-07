@@ -66,15 +66,21 @@ ftp://ftp.ensembl.org/pub/release-87/fasta/mus_musculus/cdna/
 Human ncRNA and cDNA:  
 ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/ncrna/  
 ftp://ftp.ensembl.org/pub/release-89/fasta/homo_sapiens/cdna/  
+  
+Drosophila ncRNA and cDNA:
+https://ftp.ensembl.org/pub/release-112/fasta/drosophila_melanogaster/ncrna/
+https://ftp.ensembl.org/pub/release-112/fasta/drosophila_melanogaster/cdna/
 
 Unzip both files and merge them into a single file that will include all transcriptome in fasta format. This can be done using the bash command:  
 `cat Mus_musculus*.fa > Mus_musculus_transcriptome_DB.fa`  
 `cat Homo_sapiens*.fa > Homo_sapiens_transcriptome_DB.fa`  
+`cat Drosophila_melanogaster*.fa > Drosophila_melanogaster_transcriptome_DB.fa`  
 
 Move the new files to the blastdb folder created in section 1.1. 
 In the terminal, move to the blastdb folder and create both databases with the following commands:  
 `makeblastdb -in Mus_musculus_transcriptome_DB.fa -parse_seqids -dbtype nucl`  
 `makeblastdb -in Homo_sapiens_transcriptome_DB.fa -parse_seqids -dbtype nucl`  
+`makeblastdb -in Drosophila_melanogaster_transcriptome_DB.fa -parse_seqids -dbtype nucl`  
 
 ## 1.3. Custom sequences
 
