@@ -1,5 +1,5 @@
 from Bio import SeqIO
-from Bio.SeqUtils import GC
+from Bio.SeqUtils import gc_fraction
 import primer3
 import pandas as pd
 import numpy as np
@@ -43,7 +43,7 @@ class Seq2Probes:
             probe = str(self.seq[i:i+size])
             if probe.count("N") > 0:
                 continue
-            GC_content = GC(probe)
+            GC_content = gc_fraction(probe) *100
             Tm = primer3.calcTm(probe, mv_conc=cat1_conc)
             count = 0
             if self.GCclamp(probe) and Tm > TmMin:
@@ -55,7 +55,7 @@ class Seq2Probes:
             elif not (self.GCclamp(probe)) or Tm < TmMin:
                 while count < (MaxSize - MinSize):
                     probe = str(self.seq[i:i+MinSize+count])
-                    GC_content = GC(probe)
+                    GC_content = gc_fraction(probe) *100
                     Tm = primer3.calcTm(probe, mv_conc=cat1_conc)
                     if self.GCclamp(probe) and Tm > TmMin:
                         # Uncomment next line if primer3.calcHeterodimer(probe, rev_probe, mv_conc = cat1_conc) is used instead of RNADNA_dG37(probe, SaltConc = cat1_conc)
@@ -127,6 +127,7 @@ def GetDataFrameProbes(input_fasta, size = 30, start = 0, end = None, MinSize = 
     list_probes = sum(result, [])
     array_probes = np.array(list_probes)
     dataFrame_probes = pd.DataFrame(array_probes)
+    print(dataFrame_probes)
     dataFrame_probes.columns = col_names
     dataFrame_probes[["Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]] = dataFrame_probes[["Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]].apply(pd.to_numeric)
     return dataFrame_probes
