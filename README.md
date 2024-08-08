@@ -87,16 +87,37 @@ In the terminal, move to the blastdb folder and create both databases with the f
 The files HUMAN_NCBI_GENES_retrieved.fasta.masked and MOUSE_NCBI_GENES_retrieved.fasta.masked contain NCBI main isoforms for most of the transcriptome. Oligopy will try to retrieve desired genes from these fasta files (for human or mouse respectively). If not in the file, the sequence can be added manually to these files or oligopy will try to retrieve it automatically from ensembl using pyensembl.
 
 ## 1.4. Repeat Masker
+For additional instructions see: https://darencard.net/blog/2022-10-13-install-repeat-modeler-masker/  
+  
+#### Tandem Repeats Finder
+Website: https://tandem.bu.edu/trf/home  
+From [Github](https://github.com/Benson-Genomics-Lab/TRF/releases/tag/v4.09.1) find the latest release and download the one for your platform.  
+Make executable (unix): `chmod -x trf409.macosx`  
+Create symlink: `ln -s trf409.macosx trf`
+
+#### Sequence Search Engine
+There are a number of options (see RepeatMasker website). We will insall HMMER.  
+`brew install hmmer`  
+Locate the hmmer folder that contains the nhmmer function and past that path.   
+
+#### RepeatMasker
 Download repeat masker from https://www.repeatmasker.org/RepeatMasker/ and install in `/usr/local`.  
-Only install the minimal database.  
-If you install it somewhere else, please update the path to the executable in the `oligopy/variables.yaml` file.  
-Steps:
-`cp RepeatMasker-open-4-#-#.tar.gz /usr/local`
-`cd /usr/local`
-`gunzip RepeatMasker-open-4-#-#.tar.gz`
-`tar xvf RepeatMasker-open-4-#-#.tar`
-`cd RepeatMasker`
-`perl ./configure` Choose option 1, downloading will take some time
+`cp RepeatMasker-open-4-#-#.tar.gz /usr/local` If you install it somewhere else, please update the path to the executable in the `oligopy/variables.yaml` file.  
+`cd /usr/local`  
+`gunzip RepeatMasker-open-4-#-#.tar.gz`  
+`tar xvf RepeatMasker-open-4-#-#.tar`  
+`cd RepeatMasker`  
+`perl ./configure` Choose option 1 to only install the minimal database, downloading will take some time.  
+When asked for the Tandem Repeats Finder:   
+Enther the made symlink. For me: `/Users/<path to user profile>/Documents/Projects/FISH_general/oligopy/TRF/trf`   
+   
+When asked for the Sequence Serach Engine:  
+Select option 3 for hmmer.  
+Locate the hmmer folder that contains the nhmmer function and past that path.  
+For me: `/opt/homebrew/Cellar/hmmer/3.4/bin`  
+When configured enter `5` for done.  
+  
+RepeatMasker should now be present in: `/usr/local/RepeatMasker/`  
 
 # 2. Run oligopy: parameters.
 
