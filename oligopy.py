@@ -24,7 +24,7 @@ os.system(f"mkdir {processing_folder}")
 
 #User input
 dic_input = argparseinput.arginput()
-input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type']
+input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes  = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes']
 
 #Defined variables
 with io.open(f'{os.path.dirname(os.path.realpath(sys.argv[0]))}/variables.yaml', 'r') as stream:
@@ -59,11 +59,29 @@ print(f'Input file: {input_file}')
 
 print("\n...Making candidate probes...")
 if dic_input["end"] == None:
-    data_fasta = TileGene.GetDataFrameProbes(input_file, size=size, MinSize=minSize, MaxSize=maxSize, start=start,
-                                              end=None, TmMin=tmin, cat1_conc=salt, cores_n = ncores)
+    data_fasta = TileGene.GetDataFrameProbes(
+        input_file, 
+        size=size, 
+        MinSize=minSize, 
+        MaxSize=maxSize, 
+        start=start,
+        end=None, 
+        TmMin=tmin, 
+        cat1_conc=salt, 
+        cores_n = ncores
+        )
 else:
-    data_fasta = TileGene.GetDataFrameProbes(input_file, size=size, MinSize=minSize, MaxSize=maxSize, start=start,
-                                              end=end, TmMin=tmin, cat1_conc=salt, cores_n = ncores)
+    data_fasta = TileGene.GetDataFrameProbes(
+        input_file, 
+        size=size, 
+        MinSize=minSize, 
+        MaxSize=maxSize, 
+        start=start,
+        end=end, 
+        TmMin=tmin, 
+        cat1_conc=salt, 
+        cores_n = ncores
+        )
 
 
 print("\n...Filtering probes on sequence properties...")
@@ -81,7 +99,7 @@ data_fasta = data_fasta[data_fasta["HomoDimer_dG"].apply(lambda x: x > -9000)]
 print("Probes after Homodimer filter: " + str(data_fasta.shape[0]))
 data_fasta = data_fasta[data_fasta["Hairpin_dG"].apply(lambda x: x > -9000)]
 print("Probes after Hairpin filter: " + str(data_fasta.shape[0]))
-data_fasta = data_fasta[data_fasta["GC"].apply(lambda  x: MGC > x > mGC)]
+data_fasta = data_fasta[data_fasta["GC"].apply(lambda  x: MGC >= x >= mGC)]
 print("Probes after GC filter: " + str(data_fasta.shape[0]))
 
 if padlock == 'T':
@@ -95,7 +113,6 @@ hdf5.close()
 #data_fasta.to_csv("Results/Processing/FilteredSequences.csv")
 #data_fasta = pd.read_csv("Results/Processing/FilteredSequences.csv", index_col=0, parse_dates=True)
 data_fasta = data_fasta.reset_index(drop = True)
-
 #######################################################################################################################
 ### Blast
 import multiprocessing
@@ -216,36 +233,53 @@ datframe_rules1 = pd.DataFrame(data_fasta_PNAS1.shape[0] * ["".join(PNAS_rules[1
 datframe_rules0 = pd.DataFrame(data_fasta_PNAS0.shape[0] * ["".join(PNAS_rules[0])])
 
 col = ["PNAS"]
-datframe_rules5.columns = col
-datframe_rules4.columns = col
-datframe_rules3.columns = col
-datframe_rules2.columns = col
-datframe_rules1.columns = col
-datframe_rules0.columns = col
-data_fasta_PNAS5 = pd.concat([data_fasta_PNAS5, datframe_rules5], axis=1)
-data_fasta_PNAS4 = pd.concat([data_fasta_PNAS4, datframe_rules4], axis=1)
-data_fasta_PNAS3 = pd.concat([data_fasta_PNAS3, datframe_rules3], axis=1)
-data_fasta_PNAS2 = pd.concat([data_fasta_PNAS2, datframe_rules2], axis=1)
-data_fasta_PNAS1 = pd.concat([data_fasta_PNAS1, datframe_rules1], axis=1)
-data_fasta_PNAS0 = pd.concat([data_fasta_PNAS0, datframe_rules0], axis=1)
 
-list_PNAS = [data_fasta_PNAS5, data_fasta_PNAS4, data_fasta_PNAS3, data_fasta_PNAS2, data_fasta_PNAS1, data_fasta_PNAS0]
 
-print('Applying PNAS rules for sequence.')
-print("Probes after PNAS " + "".join(PNAS_rules[0]) + ": " + str(data_fasta_PNAS5.shape[0]))
-print("Probes after PNAS " + "".join(PNAS_rules[1]) + ": " + str(data_fasta_PNAS4.shape[0]))
-print("Probes after PNAS " + "".join(PNAS_rules[2]) + ": " + str(data_fasta_PNAS3.shape[0]))
-print("Probes after PNAS " + "".join(PNAS_rules[3]) + ": " + str(data_fasta_PNAS2.shape[0]))
-print("Probes after PNAS " + "".join(PNAS_rules[4]) + ": " + str(data_fasta_PNAS1.shape[0]))
-print("Probes after PNAS " + "".join(PNAS_rules[5]) + ": " + str(data_fasta_PNAS0.shape[0]))
+list_pnas = []
+if datframe_rules5.shape[0] > 0:
+    datframe_rules5 = pd.DataFrame(data=datframe_rules5.values, index= datframe_rules5.index, columns=['PNAS'])
+    data_fasta_PNAS5 = pd.concat([data_fasta_PNAS5, datframe_rules5], axis=1)
+    print("Probes after PNAS " + "".join(PNAS_rules[5]) + ": " + str(data_fasta_PNAS5.shape[0]))
+    list_pnas.append(data_fasta_PNAS5)
 
-data1 = pd.concat([data_fasta_PNAS5, data_fasta_PNAS4, data_fasta_PNAS3, data_fasta_PNAS2, data_fasta_PNAS1, data_fasta_PNAS0])
+if datframe_rules4.shape[0] > 0:
+    datframe_rules4 = pd.DataFrame(data=datframe_rules4.values, index= datframe_rules4.index, columns=['PNAS'])
+    data_fasta_PNAS4 = pd.concat([data_fasta_PNAS4, datframe_rules4], axis=1)
+    print("Probes after PNAS " + "".join(PNAS_rules[4]) + ": " + str(data_fasta_PNAS4.shape[0]))
+    list_pnas.append(data_fasta_PNAS4)
+
+if datframe_rules3.shape[0] > 0:
+    datframe_rules3 = pd.DataFrame(data=datframe_rules3.values, index= datframe_rules3.index, columns=['PNAS'])
+    data_fasta_PNAS3 = pd.concat([data_fasta_PNAS3, datframe_rules4], axis=1)
+    print("Probes after PNAS " + "".join(PNAS_rules[3]) + ": " + str(data_fasta_PNAS3.shape[0]))
+    list_pnas.append(data_fasta_PNAS3)
+
+if datframe_rules2.shape[0] > 0:
+    datframe_rules2 = pd.DataFrame(data=datframe_rules2.values, index= datframe_rules2.index, columns=['PNAS'])
+    data_fasta_PNAS2 = pd.concat([data_fasta_PNAS2, datframe_rules4], axis=1)
+    print("Probes after PNAS " + "".join(PNAS_rules[2]) + ": " + str(data_fasta_PNAS2.shape[0]))
+    list_pnas.append(data_fasta_PNAS2)
+
+if datframe_rules1.shape[0] > 0:
+    datframe_rules1 = pd.DataFrame(data=datframe_rules1.values, index= datframe_rules1.index, columns=['PNAS'])
+    data_fasta_PNAS1 = pd.concat([data_fasta_PNAS1, datframe_rules4], axis=1)
+    print("Probes after PNAS " + "".join(PNAS_rules[1]) + ": " + str(data_fasta_PNAS1.shape[0]))
+    list_pnas.append(data_fasta_PNAS1)
+
+if datframe_rules0.shape[0] > 0:
+    datframe_rules0 = pd.DataFrame(data=datframe_rules0.values, index= datframe_rules0.index, columns=['PNAS'])
+    data_fasta_PNAS0 = pd.concat([data_fasta_PNAS0, datframe_rules4], axis=1)
+    print("Probes after PNAS " + "".join(PNAS_rules[0]) + ": " + str(data_fasta_PNAS0.shape[0]))
+    list_pnas.append(data_fasta_PNAS0)
+
+
+data1 = pd.concat(list_pnas)
 data1["PNAS"] = data1["PNAS"].apply(pd.to_numeric)
-
 data1 = data1.sort_values(["Gene", "Location", "PNAS", "Blast Cutoff"], ascending=[True, True, False, True])
 genes = data1["Gene"].unique()
 
 data1.to_csv(f"{processing_folder}/AllProbes" + dic_input["out"]+".csv")
+data1 = data1.reset_index()
 #################################################################
 #print(data1)
 
@@ -257,35 +291,35 @@ print("\n...Eliminating cross-hybridizing probes and constructing final probe se
 start = timeit.default_timer()
 dic_genes = {}
 
-
+data1 = data1[~data1['Gene'].isna()]
 dic_dataframes= {}
+genes = data1["Gene"].unique()
 for g in genes:
     data_gene = data1[data1["Gene"] == g]
     #data1 = data1[data1['Gene'] != g]
     dic_dataframes[g] = data_gene
 
 list_n = [1245, 124, 24, 4]
+
 def obtainBooleanlist2(g, dataframe, dic):
-    print(g)
     data_gene = dataframe[g]
-    #data_gene = dataframe[dataframe["Gene"] == g]
     final_loc = data_gene.shape[0]
     final_loc = data_gene.iloc[final_loc - 1]["Location"]
-    gene_boolean_list = []
-
+    #gene_boolean_list = []
+    selected_probes = []
+    selected_locs = [-100, 1000000]
+    total_overlaps = -1
     for identity in ids:
-        if sum(gene_boolean_list) >= max_probes:
+        if len(selected_probes) >= max_probes:
             break
         for pnas in list_n:
-            gene_boolean_list = []
+            #gene_boolean_list = []
             added_genes = {}
             overlap = -3
-            for i in range(0, data_gene.shape[0]):
-                if sum(gene_boolean_list) >= max_probes:
+            for i, ind in zip(range(0, data_gene.shape[0]), data_gene.index):
+                if len(selected_probes) >= max_probes:
                     break
                 loc, s, PNAS, ID, genes_off, genes_off_ident = data_gene.iloc[i][["Location", "Size", "PNAS", "Blast Cutoff", "Other_Hits","Identity_Other_Hits"]]
-                #print(genes_off[0])
-                #genes_off = [x[1:]for x in genes_off]
                 is_gene_too_much = False
                 if genes_off == 0:
                     genes_off = []
@@ -295,34 +329,45 @@ def obtainBooleanlist2(g, dataframe, dic):
                             is_gene_too_much = True
 
                 loc = data_gene.iloc[i]["Location"]
+                selected_locs_tmp = selected_locs + [loc]
+                selected_locs_tmp = sorted(selected_locs_tmp)
+                index_loc = selected_locs_tmp.index(loc)
+                
+                if ((loc- 30) - selected_locs_tmp[index_loc - 1])  >= overlap_distance and (selected_locs_tmp[index_loc + 1] - (loc + s)) >= overlap_distance and loc not in selected_locs:
+                    not_overlap = True
+                else:
+                    not_overlap = False
 
-                if loc > (overlap + overlap_distance) and PNAS >= pnas and ID <= identity and is_gene_too_much==False and sum(gene_boolean_list) < 45:
+                if not_overlap and PNAS >= pnas and ID <= identity and is_gene_too_much==False and len(selected_probes) < 45:
+                    #print(selected_locs_tmp)
+                    #print('the loc', loc)
+                    #print(((loc- s) - selected_locs_tmp[index_loc - 1]))
+                    #print((selected_locs_tmp[index_loc + 1] - (loc + s)))
                     overlap = loc + s
-                    gene_boolean_list.append(True)
+                    #print(selected_locs)
                     for g_off2 in genes_off:
                         if g_off2 not in added_genes:
                             added_genes[g_off2] = 1
                         else:
                             added_genes[g_off2] += 1
-                else:
-                    gene_boolean_list.append(False)
-            # int((float(final_loc) /1000) * 18 or 40
-            if sum(gene_boolean_list) >= max_probes:
+                    selected_locs.append(loc)
+                    selected_locs = sorted(selected_locs)
+                    selected_probes.append(ind)
+
+            if len(selected_probes) >= max_probes:
                 break
-        # int((float(final_loc) /1000)* 18 or 20
-        if sum(gene_boolean_list) >= max_probes:
+        if len(selected_probes) >= max_probes:
             break
-    if sum(gene_boolean_list) < 12:
-        print(f'Found only {sum(gene_boolean_list)} probes for {g}, relaxing parameters overlap and Noff to -24 and 18')
+    if len(selected_probes) < min_probes:
+        print('Too few probes for {}, {} probes,relaxing parameters overlap and Noff to -24 and 18'.format(g, len(selected_probes )))
         for identity in ids:
-            if sum(gene_boolean_list) >= max_probes:
+            if len(selected_probes) >= max_probes:
                 break
             for pnas in list_n:
-                gene_boolean_list = []
+                #gene_boolean_list = []
                 added_genes = {}
-                overlap = -3
-                for i in range(0, data_gene.shape[0]):
-                    if sum(gene_boolean_list) >= max_probes:
+                for i, ind in zip(range(0, data_gene.shape[0]), data_gene.index):
+                    if len(selected_probes) >= max_probes:
                         break
                     loc, s, PNAS, ID, genes_off, genes_off_ident = data_gene.iloc[i][["Location", "Size", "PNAS", "Blast Cutoff", "Other_Hits","Identity_Other_Hits"]]
                     #print(genes_off[0])
@@ -337,28 +382,43 @@ def obtainBooleanlist2(g, dataframe, dic):
 
                     loc = data_gene.iloc[i]["Location"]
 
-                    if loc > (overlap + -24) and PNAS >= pnas and ID <= identity and is_gene_too_much==False and sum(gene_boolean_list) < 45:
+                    selected_locs_tmp = selected_locs + [loc]
+                    selected_locs_tmp = sorted(selected_locs_tmp)
+                    index_loc = selected_locs_tmp.index(loc)
+                    
+                    if ((loc- 30) - selected_locs_tmp[index_loc - 1])  >= overlap_distance and (selected_locs_tmp[index_loc + 1] - (loc + s)) >= overlap_distance and loc not in selected_locs:
+                        not_overlap = True
+                        overlap = min(((loc- 30) - selected_locs_tmp[index_loc - 1]), (selected_locs_tmp[index_loc + 1] - (loc + s)))
+
+                    else:
+                        if total_overlaps <= max_probes_overlapping and loc not in selected_locs and overlap > overlap_distance/2:
+                            not_overlap = True
+
+                            total_overlaps += 1
+                        else:
+                            not_overlap = False
+
+                    if not_overlap and PNAS >= pnas and ID <= identity and is_gene_too_much==False and len(selected_probes) < 45:
+                    #if loc > (overlap + -10) :
                         overlap = loc + s
-                        gene_boolean_list.append(True)
                         for g_off2 in genes_off:
                             if g_off2 not in added_genes:
                                 added_genes[g_off2] = 1
                             else:
                                 added_genes[g_off2] += 1
-                    else:
-                        gene_boolean_list.append(False)
-                # int((float(final_loc) /1000) * 18 or 40
-                if sum(gene_boolean_list) >= max_probes:
+                        selected_locs.append(loc)
+                        selected_locs = sorted(selected_locs)
+                        selected_probes.append(ind)
+
+                if len(selected_probes) >= max_probes:
                     break
-            # int((float(final_loc) /1000)* 18 or 20
-            if sum(gene_boolean_list) >= max_probes:
+            if len(selected_probes) >= max_probes:
                 break 
 
-    gene_boolean_list += [False]*(dataframe[g].shape[0]-len(gene_boolean_list))
-    dic[g] = gene_boolean_list
-    print(len(gene_boolean_list))
-
-    return dic
+    print(g, selected_locs, selected_probes)
+    #gene_boolean_list += [False]*(dataframe[g].shape[0]-len(gene_boolean_list))
+    #dic[g] = selected_probes
+    return (g, selected_probes)
 
 
 if len(dic_dataframes):
@@ -366,23 +426,38 @@ if len(dic_dataframes):
     #num_cpu = multiprocessing.cpu_count()
     num_cpu = ncores
     from joblib import Parallel, delayed
+    print('Genes',genes)
     result1 = Parallel(n_jobs=num_cpu)(delayed(obtainBooleanlist2)(g, dic_dataframes, dic_genes) for g in genes)
 else:
     print("Not probes after blast")
 
-
+print(result1)
 stop = timeit.default_timer()
 print("Time to eliminate cross-hybridizing probes: " + str(stop - start))
 #################################################################### Perform analysis on output  ###############################################################
-boolean_list = []
+'''boolean_list = []
 result2 = {}
 for dic in result1:
     result2.update(dic)
+
 for gene in data1["Gene"]:
     if gene in result2:
         boolean_list += result2[gene]
         del result2[gene]
+
 data1 = data1[(boolean_list)]
+'''
+
+selected_probes_dfs = []
+for g, sel in result1:
+    dg = dic_dataframes[g]
+    print(g, sel)
+    dg_selected = dg.loc[sel]
+
+    dg_selected= dg_selected.sort_values(["Location"], ascending=[True])
+    selected_probes_dfs.append(dg_selected)
+
+data1 = pd.concat(selected_probes_dfs, axis=0)
 
 
 dic_of_lists = {}

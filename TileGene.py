@@ -43,8 +43,8 @@ class Seq2Probes:
             probe = str(self.seq[i:i+size])
             if probe.count("N") > 0:
                 continue
-            GC_content = gc_fraction(probe)
-            Tm = primer3.calc_tm(probe, mv_conc=cat1_conc)
+            GC_content = gc_fraction(probe) *100
+            Tm = primer3.calcTm(probe, mv_conc=cat1_conc)
             count = 0
             if self.GCclamp(probe) and Tm > TmMin:
                 # Uncomment next line if primer3.calcHeterodimer(probe, rev_probe, mv_conc = cat1_conc) is used instead of RNADNA_dG37(probe, SaltConc = cat1_conc)
@@ -55,8 +55,8 @@ class Seq2Probes:
             elif not (self.GCclamp(probe)) or Tm < TmMin:
                 while count < (MaxSize - MinSize):
                     probe = str(self.seq[i:i+MinSize+count])
-                    GC_content = gc_fraction(probe)
-                    Tm = primer3.calc_tm(probe, mv_conc=cat1_conc)
+                    GC_content = gc_fraction(probe) *100
+                    Tm = primer3.calcTm(probe, mv_conc=cat1_conc)
                     if self.GCclamp(probe) and Tm > TmMin:
                         # Uncomment next line if primer3.calcHeterodimer(probe, rev_probe, mv_conc = cat1_conc) is used instead of RNADNA_dG37(probe, SaltConc = cat1_conc)
                         #rev_probe = str(self.seq[i:i+MinSize + count].reverse_complement())
@@ -129,6 +129,7 @@ def GetDataFrameProbes(input_fasta, size = 30, start = 0, end = None, MinSize = 
     if array_probes.shape[0] == 0:
         print('WARNING: Could not find any probes for given sequence!\n')
     dataFrame_probes = pd.DataFrame(array_probes)
+    print(dataFrame_probes)
     dataFrame_probes.columns = col_names
     dataFrame_probes[["Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]] = dataFrame_probes[["Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]].apply(pd.to_numeric)
     return dataFrame_probes
