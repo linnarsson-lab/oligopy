@@ -25,6 +25,9 @@ def arginput():
     parser.add_argument("-db_species", type = str, action = "store", metavar = "Choose: human, mouse or rat",default=None)
     parser.add_argument("-padlock", type = str, action = "store", metavar = "Start site to retrieve probes", default= "F")
     parser.add_argument("-probe_type", type = str, action = "store", metavar = "twist or opool", default= "twist")
+    parser.add_argument("-max_probes_overlapping", type = int, action = "store", metavar = "maximum number of probes allowed to overlap", default= 4)
+    parser.add_argument("-min_probes", type = int, action = "store", metavar = "minimum probes to activate high overlapping mode", default= 10)
+
     
     args = vars(parser.parse_args())
     return args
