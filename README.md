@@ -8,11 +8,14 @@ The installation of blast+ will require the creation of the desired databases fo
 
 ## 1.1. Python environment and dependencies
 Make a new envrionment:  
-`conda create --name oligopy python=3.8 numpy=1.21 pandas pyarrow joblib`  
+`conda create --name oligopy python=3.9 numpy pandas joblib`  
 `conda activate oligopy`  
 Install [Biopython](https://biopython.org/) through pip: `pip install biopython`  
 Install [primer3](https://github.com/primer3-org/primer3) through pip: `pip install primer3-py`  
-Install [Pyensembl](https://github.com/openvax/pyensembl) through conda: `conda install bioconda::pyensembl`  
+Install [Pyensembl](https://github.com/openvax/pyensembl) through pip: `pip install pyensembl`  
+Install openpyxl through pip: `pip install openpyxl`  
+Or all togheter: `pip install biopython primer3-py pyensembl openpyxl`  
+Install pytables through conda: `conda install -c conda-forge pytables`  
 
 ## 1.2. Install Blast Command Line Tool
 NCBI provides command line standalone BLAST+ programs (based on the NCBI C++ toolkit) as a single compressed package. The package is available for a variety of computer platforms (hardware/operating system combinations) at:  
@@ -94,7 +97,17 @@ In the terminal, move to the blastdb folder and create both databases with the f
 
 The files HUMAN_NCBI_GENES_retrieved.fasta.masked and MOUSE_NCBI_GENES_retrieved.fasta.masked contain NCBI main isoforms for most of the transcriptome. Oligopy will try to retrieve desired genes from these fasta files (for human or mouse respectively). If not in the file, the sequence can be added manually to these files or oligopy will try to retrieve it automatically from ensembl using pyensembl.
 
-## 1.5. Repeat Masker
+## 1.5. Pyensembl
+When you get an message like: `ValueError: GTF database needs to be created, run: pyensembl install --release 110 --species drosophila_melanogaster`  
+In a terminal with the oligopy environment activated run: `pyensembl install --release 110 --species drosophila_melanogaster`  
+   
+Development note:  
+To add new species you need to adapt the source code and install the new species through pyensembl.  
+First check which species and which releases are available [here](https://github.com/openvax/pyensembl/issues/296)  
+Then add them in the conda environment by running: `pyensembl install --release 103 110 --species drosophila_melanogaster`  
+Add the species name and release to `variables.ini`  
+
+## 1.6. Repeat Masker
 For additional instructions see: https://darencard.net/blog/2022-10-13-install-repeat-modeler-masker/  
   
 #### Tandem Repeats Finder

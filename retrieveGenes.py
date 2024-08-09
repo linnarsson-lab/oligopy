@@ -7,6 +7,7 @@ import os
 
 def generate_fasta(inputexcel, species, ensembl_release, folder=''):
     Ensembl = EnsemblRelease(ensembl_release, species) #Change to desired ensembl release version in variables.yaml
+    print(f'Using Ensembl realease: {ensembl_release}, for species: {species}')
     genesbarcodes = pd.read_excel(inputexcel)
     genesbarcodes = genesbarcodes[genesbarcodes['Gene'] != 'nan']
     genesbarcodes = genesbarcodes[pd.isna(genesbarcodes['Gene']) == False]

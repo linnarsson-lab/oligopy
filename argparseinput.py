@@ -22,7 +22,7 @@ def arginput():
     parser.add_argument("-PNAS", type=list, action="store", metavar="PNAS", default=["1","2","3","4", "5"])
     parser.add_argument("-out", type = str, action = "store", metavar = "Output file name")
     parser.add_argument("-Noff", type = int, action = "store", metavar = "Allowed number of off target probes with the same off-target match in the same probeset",default=7)
-    parser.add_argument("-db_species", type = str, action = "store", metavar = "Choose: `human`, `mouse` or `drosophila`",default=None)
+    parser.add_argument("-db_species", type = str, action = "store", metavar = "Choose: `human`, `mouse` or `fly`",default=None)
     parser.add_argument("-padlock", type = str, action = "store", metavar = "Start site to retrieve probes. T=True, F=False", default= "F")
     parser.add_argument("-probe_type", type = str, action = "store", metavar = "`twist`,  `opool` or `opool_amp`. Twist = Fw primer-readout 1:3 - Probe - Readout 4:6 - Rv primer. Opool = Probe - Readout 1:6. Opool_amp = Fw primer - Probe - Readout 1:6 - Rv primer", default= "twist")
     parser.add_argument("-max_probes_overlapping", type = int, action = "store", metavar = "maximum number of probes allowed to overlap", default= 4)

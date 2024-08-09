@@ -3,7 +3,6 @@ from Bio.SeqUtils import gc_fraction
 import primer3
 import pandas as pd
 import numpy as np
-import multiprocessing
 from joblib import Parallel, delayed
 
 
