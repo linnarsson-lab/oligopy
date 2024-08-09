@@ -170,3 +170,7 @@ Input can be fasta file with defined sequences, or excel with a column "Gene" an
 `-Noff`, Allowed number of off target probes with the same off-target match in the same probeset, default 7  
 `-db_species`, Choose: human, mouse or drosophila, default None  
 `-probe_type`, twist or opool, default "twist"  
+`-max_probes_overlapping`, Maximum number of probes allowed to overlap, default= 4
+`-min_probes`, Minimum probes to activate high overlapping mode", default= 10
+`-assign_tails`,Add tails to the probes when input is .xlxs. T=True, F=False", default = "T"
+`-cleanup`, If `T` delete intermediate files. F for False", default = "T"
