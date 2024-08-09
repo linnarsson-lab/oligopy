@@ -6,7 +6,15 @@ Oligopy requires different programs: blast+ (command line blast) and other pip i
 
 The installation of blast+ will require the creation of the desired databases for the comparison of each probe retrieved.
 
-## 1.1. Install Blast Command Line Tool
+## 1.1. Python environment and dependencies
+Make a new envrionment:  
+`conda create --name oligopy python=3.8 numpy=1.21 pandas pyarrow joblib`  
+`conda activate oligopy`  
+Install [Biopython](https://biopython.org/) through pip: `pip install biopython`  
+Install [primer3](https://github.com/primer3-org/primer3) through pip: `pip install primer3-py`  
+Install [Pyensembl](https://github.com/openvax/pyensembl) through conda: `conda install bioconda::pyensembl`  
+
+## 1.2. Install Blast Command Line Tool
 NCBI provides command line standalone BLAST+ programs (based on the NCBI C++ toolkit) as a single compressed package. The package is available for a variety of computer platforms (hardware/operating system combinations) at:  
 ftp://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST/  
   
@@ -56,7 +64,7 @@ Or under csh to create it anew:
 A better approach is to have the system automatically set these variables upon login, by modifying the .bash_profile or .cshrc file.
 Once they are set, the system knows where to call BLAST programs, and the invoked program will know where to look for the database files. Note that with BLASTDB unspecified, BLAST+ programs only search the working directory, i.e. the directory where BLAST command is issued. For more details about configuring BLAST+, please see http://www.ncbi.nlm.nih.gov/books/NBK279695/.
 
-## 1.2. Make blast database
+## 1.3. Make blast database
 Currently, oligopy only supports the transcriptome or genome with ENSEMBL format, so that the transcriptome and genome should be downloaded from the ensembl database in fasta format:
 
 Mouse ncRNA and cDNA:  
@@ -82,11 +90,11 @@ In the terminal, move to the blastdb folder and create both databases with the f
 `makeblastdb -in Homo_sapiens_transcriptome_DB.fa -parse_seqids -dbtype nucl`  
 `makeblastdb -in Drosophila_melanogaster_transcriptome_DB.fa -parse_seqids -dbtype nucl`  
 
-## 1.3. Custom sequences
+## 1.4. Custom sequences
 
 The files HUMAN_NCBI_GENES_retrieved.fasta.masked and MOUSE_NCBI_GENES_retrieved.fasta.masked contain NCBI main isoforms for most of the transcriptome. Oligopy will try to retrieve desired genes from these fasta files (for human or mouse respectively). If not in the file, the sequence can be added manually to these files or oligopy will try to retrieve it automatically from ensembl using pyensembl.
 
-## 1.4. Repeat Masker
+## 1.5. Repeat Masker
 For additional instructions see: https://darencard.net/blog/2022-10-13-install-repeat-modeler-masker/  
   
 #### Tandem Repeats Finder

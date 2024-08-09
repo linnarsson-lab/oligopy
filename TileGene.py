@@ -43,8 +43,8 @@ class Seq2Probes:
             probe = str(self.seq[i:i+size])
             if probe.count("N") > 0:
                 continue
-            GC_content = gc_fraction(probe) *100
-            Tm = primer3.calcTm(probe, mv_conc=cat1_conc)
+            GC_content = gc_fraction(probe)
+            Tm = primer3.calc_tm(probe, mv_conc=cat1_conc)
             count = 0
             if self.GCclamp(probe) and Tm > TmMin:
                 # Uncomment next line if primer3.calcHeterodimer(probe, rev_probe, mv_conc = cat1_conc) is used instead of RNADNA_dG37(probe, SaltConc = cat1_conc)
@@ -55,8 +55,8 @@ class Seq2Probes:
             elif not (self.GCclamp(probe)) or Tm < TmMin:
                 while count < (MaxSize - MinSize):
                     probe = str(self.seq[i:i+MinSize+count])
-                    GC_content = gc_fraction(probe) *100
-                    Tm = primer3.calcTm(probe, mv_conc=cat1_conc)
+                    GC_content = gc_fraction(probe)
+                    Tm = primer3.calc_tm(probe, mv_conc=cat1_conc)
                     if self.GCclamp(probe) and Tm > TmMin:
                         # Uncomment next line if primer3.calcHeterodimer(probe, rev_probe, mv_conc = cat1_conc) is used instead of RNADNA_dG37(probe, SaltConc = cat1_conc)
                         #rev_probe = str(self.seq[i:i+MinSize + count].reverse_complement())

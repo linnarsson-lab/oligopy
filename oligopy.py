@@ -12,7 +12,8 @@ import datetime
 import io
 import yaml
 import sys 
-    
+import shutil
+
 totalstart = timeit.default_timer()
 
 #Output folders
@@ -24,22 +25,21 @@ os.system(f"mkdir {processing_folder}")
 
 #User input
 dic_input = argparseinput.arginput()
-input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes  = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes']
+input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes'], dic_input["assign_tails"], dic_input['cleanup']
+assert db_species in ['human', 'mouse', 'drosophila']
 
 #Defined variables
 with io.open(f'{os.path.dirname(os.path.realpath(sys.argv[0]))}/variables.yaml', 'r') as stream:
     defined_variables = yaml.safe_load(stream)
 
-assign_tails = False
 if input_file.count('.xlsx'):
-    assert db_species in ['human', 'mouse', 'drosophila']
-
-    generate_fasta(input_file, db_species, result_folder) 
+    generate_fasta(input_file, db_species, defined_variables[f'{db_species}_ensembl_release'], result_folder) 
     codebook = pd.read_excel(input_file)
     #Write codebook to output folder
     codebook.to_excel(f'{result_folder}/{input_file}')
     input_file = result_folder + '/' +  input_file.split('.')[0]+'_Markers.fasta'
-    assign_tails= True
+else:
+    assign_tails = "F"
 
 if padlock == 'T':
     minSize,maxSize,size = 30,30,30
@@ -47,7 +47,6 @@ if padlock == 'T':
 assert os.path.isfile(db), "Enter the right path to blastdb"
 
 if mask == "T":
-    assert db_species in ['human', 'mouse', 'drosophila']
     #Run repeatmasker
     os.system(f"{defined_variables['RepeatMasker']} -species {db_species} {input_file} -dir {processing_folder}")
     #Use masked fasta file
@@ -177,7 +176,8 @@ def blastingclass(max_blast_hit_n):
         return 100
 
 new_merged_data_frame['Blast Cutoff'] = list(map(blastingclass , list((((new_merged_data_frame["Max_Other_Hit_Identity"] / new_merged_data_frame["Size"])*100)))))
-new_merged_data_frame.to_csv(f'{result_folder}/probesunique.csv')
+#Uncomment if you want to save all possible probes
+#new_merged_data_frame.to_csv(f'{result_folder}/probesunique.csv')
 
 #hdf5 = pd.HDFStore("Results/Processing/UniqueIsoformProbes.h5")
 #hdf5.put('data1',data_fasta,format="table",data_columns=True)
@@ -431,7 +431,6 @@ if len(dic_dataframes):
 else:
     print("Not probes after blast")
 
-print(result1)
 stop = timeit.default_timer()
 print("Time to eliminate cross-hybridizing probes: " + str(stop - start))
 #################################################################### Perform analysis on output  ###############################################################
@@ -506,7 +505,7 @@ except:
 
 ################################################ Assign Tails to Generated probeset ##################################################################
 
-if assign_tails:
+if assign_tails == "T":
 
     print('\n...Assigning shuffeled tails...')
     print('\nWARNING: USING NEW VERSION OF P5 AND P7 PCR PRIMERS!')
@@ -545,7 +544,7 @@ if assign_tails:
                 tail3 = sep.join(tails[3:])
 
                 if probe_type == 'twist':
-                    full_length_probe = fw +tail5+sep+str(p)+sep+tail13+ rvrc
+                    full_length_probe = fw +tail5+sep+str(p)+sep+tail3+ rvrc
                 elif probe_type == 'opool':
                     full_length_probe = str(p)+sep+tail5+sep+tail3
                 elif probe_type == 'opool_amp':
@@ -581,7 +580,12 @@ if assign_tails:
             data_genesprobes.to_excel(writer)
         print(f'IDT order form written to: {order_form_fname}')
 
+#Cleanup
+if cleanup == "T":
+    shutil.rmtree(processing_folder)
+    print(f'Delteted intermediate files originally in: {processing_folder}')
+
 totalfinal = timeit.default_timer()
-print("Total time: " + str(totalfinal-totalstart))
+print("\nFINISHED. Total time: " + str(totalfinal-totalstart))
 
     

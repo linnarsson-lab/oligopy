@@ -25,6 +25,11 @@ def arginput():
     parser.add_argument("-db_species", type = str, action = "store", metavar = "Choose: `human`, `mouse` or `drosophila`",default=None)
     parser.add_argument("-padlock", type = str, action = "store", metavar = "Start site to retrieve probes. T=True, F=False", default= "F")
     parser.add_argument("-probe_type", type = str, action = "store", metavar = "`twist`,  `opool` or `opool_amp`. Twist = Fw primer-readout 1:3 - Probe - Readout 4:6 - Rv primer. Opool = Probe - Readout 1:6. Opool_amp = Fw primer - Probe - Readout 1:6 - Rv primer", default= "twist")
+    parser.add_argument("-max_probes_overlapping", type = int, action = "store", metavar = "maximum number of probes allowed to overlap", default= 4)
+    parser.add_argument("-min_probes", type = int, action = "store", metavar = "minimum probes to activate high overlapping mode", default= 10)
+    
+    parser.add_argument("-assign_tails", type = str, action = "store", metavar = "Add tails to the probes when input is .xlxs. T=True, F=False", default = "T")
+    parser.add_argument("-cleanup", type = str, action = "store", metavar = "If `T` delete intermediate files. F for False", default = "T")
     
     args = vars(parser.parse_args())
     return args

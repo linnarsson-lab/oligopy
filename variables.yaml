@@ -5,3 +5,10 @@ RepeatMasker: /usr/local/RepeatMasker/RepeatMasker
 forward_primer: AATGATACGGCGACCACCGAGATCT
 #Will be reverse complemented before adding to probe. 
 reverse_primer: CAAGCAGAAGACGGCATACGAGAT
+#Ensemble release to use for each species.
+#When using a new release please install it by running:
+#  pyensembl install --release <release_version> --species <species_name>
+#For instance:  pyensembl install --release 100 --species homo_sapiens
+mouse_ensembl_release: 100
+human_ensembl_release: 100
+drosophila_ensembl_release: 112

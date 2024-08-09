@@ -5,8 +5,8 @@ from Bio.Seq import Seq
 from Bio import SeqIO
 import os
 
-def generate_fasta(inputexcel, species, folder=''):
-    Ensembl = EnsemblRelease(100,species)
+def generate_fasta(inputexcel, species, ensembl_release, folder=''):
+    Ensembl = EnsemblRelease(ensembl_release, species) #Change to desired ensembl release version in variables.yaml
     genesbarcodes = pd.read_excel(inputexcel)
     genesbarcodes = genesbarcodes[genesbarcodes['Gene'] != 'nan']
     genesbarcodes = genesbarcodes[pd.isna(genesbarcodes['Gene']) == False]
@@ -48,7 +48,7 @@ def generate_fasta(inputexcel, species, folder=''):
     elif species == 'drosophila':
         print('\n\nNEW SPECIES: DROSOPHILA!!!\n\n')
         p = os.path.dirname(os.path.abspath(__file__))
-        p = os.path.join(p,"DROSOPHILA_NCBI_GENES_retrieved.fasta.masked") #TODO: NOT SURE THIS IS CORRECT
+        p = os.path.join(p,"DROSOPHILA_NCBI_GENES_retrieved.fasta.masked")
         for record in SeqIO.parse(p, "fasta"):
             gene = record.id.split('|')[0].split('_')[0]
             if gene in list(genesbarcodes['Gene']):
