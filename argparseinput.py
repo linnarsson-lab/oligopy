@@ -17,7 +17,7 @@ def arginput():
     parser.add_argument("-mGC", type=float, action="store", metavar="Minimum GC content", default=0.4)
     parser.add_argument("-MGC", type=float, action="store", metavar="Maximum GC content", default=0.6)
     parser.add_argument("-blast", type=float, action="store", metavar="Blast Maximum Identity Allowed", default=60)
-    parser.add_argument("-max_probes", type=float, action="store", metavar="Retrieve maximum of max_probes, default 28", default=30)
+    parser.add_argument("-max_probes", type=float, action="store", metavar="Retrieve maximum of max_probes, default 30", default=30)
     parser.add_argument("-mask", type = str, action = "store", metavar = "Start site to retrieve probes. T=True, F=False", default= "F")
     parser.add_argument("-PNAS", type=list, action="store", metavar="PNAS", default=["1","2","3","4", "5"])
     parser.add_argument("-out", type = str, action = "store", metavar = "Output file name")
