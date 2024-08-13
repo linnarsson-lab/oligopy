@@ -14,7 +14,7 @@ import shutil
 
 totalstart = timeit.default_timer()
 
-print('\n\nLatest version\n')
+print('\n\nVersion Lars\n')
 
 #Output folders
 date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -27,9 +27,12 @@ os.system(f"mkdir {processing_folder}")
 dic_input = argparseinput.arginput()
 input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes'], dic_input["assign_tails"], dic_input['cleanup']
 
+#Handle species
 if db_species == 'fly' or db_species == 'Fly':
     db_species = 'drosophila_melanogaster'
 assert db_species in ['human', 'mouse', 'drosophila_melanogaster']
+#Check if database excists
+assert os.path.isfile(db), "Enter the right path to blastdb"
 
 #Defined variables
 config = configparser.ConfigParser()
@@ -48,7 +51,6 @@ else:
 if padlock == 'T':
     minSize,maxSize,size = 30,30,30
 
-assert os.path.isfile(db), "Enter the right path to blastdb"
 
 if mask == "T":
     #Run repeatmasker
