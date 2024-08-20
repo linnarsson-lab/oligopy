@@ -1,7 +1,7 @@
 
 def arginput():
     import argparse
-    parser = argparse.ArgumentParser(description='Oligopy: retrieve FISH probes from inpu sequences.')
+    parser = argparse.ArgumentParser(description='Oligopy: retrieve FISH probes from input sequences.')
     parser.add_argument("-query", type = str, action = "store", metavar = "Input sequences")
     parser.add_argument("-t", type = float, action = "store", metavar = "Minimum probe melting temperature", default = 65)
     parser.add_argument("-T", type = float, action = "store", metavar = "Maximum probe melting temperature", default= 90)
@@ -13,7 +13,7 @@ def arginput():
     parser.add_argument("-salt", type = float,action = "store", metavar = "Sodium salt concentration for the melting temperature calculation", default=330)
     parser.add_argument("-db", type = str, action = "store", metavar = "Database: mouse or human")
     parser.add_argument("-start", type = int, action = "store", metavar = "Start site to retrieve probes", default= 0)
-    parser.add_argument("-end", type = int, action = "store", metavar = "End site to retrive probes", default= None)
+    parser.add_argument("-end", type = int, action = "store", metavar = "End site to retrieve probes", default= None)
     parser.add_argument("-mGC", type=float, action="store", metavar="Minimum GC content", default=0.4)
     parser.add_argument("-MGC", type=float, action="store", metavar="Maximum GC content", default=0.6)
     parser.add_argument("-blast", type=float, action="store", metavar="Blast Maximum Identity Allowed", default=60)

@@ -15,7 +15,7 @@ Install [Biopython](https://biopython.org/) through pip: `pip install biopython`
 Install [primer3](https://github.com/primer3-org/primer3) through pip: `pip install primer3-py`  
 Install [Pyensembl](https://github.com/openvax/pyensembl) through pip: `pip install pyensembl`  
 Install openpyxl through pip: `pip install openpyxl`  
-Or all togheter: `pip install biopython primer3-py pyensembl openpyxl`  
+Or all together: `pip install biopython primer3-py pyensembl openpyxl`  
 Install pytables through conda: `conda install -c conda-forge pytables`  
 (Do not use a higher Python version and do use Pip where indicated.)
 
@@ -66,7 +66,12 @@ Or under csh to create it anew:
 
 `set BLASTDB=$HOME/blastdb`
 
-A better approach is to have the system automatically set these variables upon login, by modifying the .bash_profile or .cshrc file.
+A better approach is to have the system automatically set these variables upon login, by modifying the .bash_profile, .bashrc or .cshrc file.  
+Example with bashrc:  
+`nano ~/.bashrc`  
+Add the path to the Blast bin to the end of the file:  
+`export PATH=$PATH:<path to ncbi folder>/ncbi-blast-2.15.0+/bin`  
+Close and source the bashrc again: `source ~/.bashrc`  
 Once they are set, the system knows where to call BLAST programs, and the invoked program will know where to look for the database files. Note that with BLASTDB unspecified, BLAST+ programs only search the working directory, i.e. the directory where BLAST command is issued. For more details about configuring BLAST+, please see http://www.ncbi.nlm.nih.gov/books/NBK279695/.
 
 ## 1.3. Make blast database

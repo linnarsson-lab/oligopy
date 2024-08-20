@@ -20,7 +20,7 @@ def generate_fasta(inputexcel, species, ensembl_release, transcript_reference_fi
             Ensembl.transcript_ids_of_gene_name(x)
         except:
             error = True
-            log.info(f'ERROR Failed to retrieve gene: "(x)". Probably this is not the main gene name, try finding the main gene at ensembl and replace it.')
+            log.info(f'ERROR Failed to retrieve gene: "{x}". Probably this is not the main gene name, try finding the main gene at ensembl and replace it.')
             Ensembl.gene_names
     if error == True:
         log.info("""\nCould not find all the genes in Ensembl. Fix the name for the above mentioned genes.
