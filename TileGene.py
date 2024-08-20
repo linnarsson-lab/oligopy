@@ -68,7 +68,7 @@ class Seq2Probes:
         list_probes.sort(key= lambda x: x[2])
         return list_probes
 
-def Blast2Dic2(file_blast, db_species):
+def Blast2Dic2(file_blast):
     dic = {}
     import pandas as pd
 
@@ -113,10 +113,10 @@ def Blast2Dic2(file_blast, db_species):
 
 def processingFastaProbes(x, y, size, start, end, MinSize, MaxSize, TmMin, cat1_conc):
     class_gene = Seq2Probes(x, y)
-    print(class_gene.name)
+    #print(class_gene.name)
     return class_gene.list(size, start, end, MinSize, MaxSize,TmMin, cat1_conc)
 
-def GetDataFrameProbes(input_fasta, size = 30, start = 0, end = None, MinSize = 26, MaxSize = 32, TmMin = 70, cat1_conc = 300, cores_n= 4):
+def GetDataFrameProbes(input_fasta, size = 30, start = 0, end = None, MinSize = 26, MaxSize = 32, TmMin = 70, cat1_conc = 300, cores_n=4,log=None):
     genes = {}
     for seq in SeqIO.parse(input_fasta, "fasta"):
         gene_ENS = "_".join(seq.description.split(" "))
@@ -126,9 +126,9 @@ def GetDataFrameProbes(input_fasta, size = 30, start = 0, end = None, MinSize = 
     list_probes = sum(result, [])
     array_probes = np.array(list_probes)
     if array_probes.shape[0] == 0:
-        print('WARNING: Could not find any probes for given sequence!\n')
+        log.info('WARNING: Could not find any probes for given sequence!')
     dataFrame_probes = pd.DataFrame(array_probes)
-    print(dataFrame_probes)
     dataFrame_probes.columns = col_names
     dataFrame_probes[["Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]] = dataFrame_probes[["Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]].apply(pd.to_numeric)
+    log.info(f'Generated {dataFrame_probes.shape[0]} candidate probes for {len(genes)} genes, on average {round(dataFrame_probes.shape[0] / len(genes))} per gene.')
     return dataFrame_probes

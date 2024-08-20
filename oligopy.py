@@ -11,36 +11,79 @@ import numpy as np
 import datetime
 import configparser
 import shutil
+from pyensembl import species
+from glob import glob
+from logger import SimpleLogger
 
 totalstart = timeit.default_timer()
 
-print('\n\nVersion Lars\n')
-
-#Output folders
-date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-result_folder = f'Oligopy_Results_{date}'
-processing_folder = f'{result_folder}/Processing'
-os.system(f"mkdir {result_folder}")
-os.system(f"mkdir {processing_folder}")
 
 #User input
 dic_input = argparseinput.arginput()
-input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes'], dic_input["assign_tails"], dic_input['cleanup']
+input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup, transcript_reference_file = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes'], dic_input["assign_tails"], dic_input['cleanup'], dic_input['reference_sequence']
+
+#Paths
+date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+result_folder = f'Oligopy_Run_{date}_{output}'
+processing_folder = f'{result_folder}/Processing'
+os.system(f"mkdir {result_folder}")
+os.system(f"mkdir {processing_folder}")
+oligopy_path = os.path.dirname(os.path.abspath(__file__))
+
+#Logger
+log = SimpleLogger(f'{result_folder}/Oligopy_log.log').get_logger()
+
+log.info("")
+log.info("...Input handling...")
 
 #Handle species
-if db_species == 'fly' or db_species == 'Fly':
-    db_species = 'drosophila_melanogaster'
-assert db_species in ['human', 'mouse', 'drosophila_melanogaster']
+try:
+    ensemble_species = species.find_species_by_name(db_species)
+    for i in ['latin_name', 'synonyms', 'reference_assemblies']:
+        log.info(f'{i}: {getattr(ensemble_species, i)}')
+except Exception as e:
+    raise Exception(f'Species: "{db_species}" is not a supported species in pyensembl. Error: \n{e}')
+
 #Check if database excists
 assert os.path.isfile(db), "Enter the right path to blastdb"
 
 #Defined variables
 config = configparser.ConfigParser()
-config.read(f'{os.path.dirname(os.path.abspath(__file__))}/variables.ini')
+config.read(os.path.join(oligopy_path, 'variables.ini'))
 defined_variables = dict(config['variables'])
 
+#Transcript reference file
+#Handle user input
+if transcript_reference_file == 'None':
+    transcript_reference_file = None
+else:
+    if os.path.isfile(transcript_reference_file):
+        log.info(f'ERROR: {transcript_reference_file} does not exist.')
+        log.info(f'Oligopy will try to find a reference transcript file in the `Reference_transcripts` folder.')
+        transcript_reference_file = None
+#User input was None or invalid, try finding default reference file.
+transcript_reference_folder = os.path.join(oligopy_path, 'Reference_transcripts/')
+flist = glob(f'{transcript_reference_folder}*')
+#First try to find the latin name
+for fname in flist:
+    if ensemble_species.latin_name.lower() in fname.lower():
+        transcript_reference_file = fname
+#Falling back to species synonyms
+if transcript_reference_file == None:
+    for fname in flist:
+        if any(a.lower() in fname.lower() for a in ensemble_species.synonyms):
+            transcript_reference_file = fname
+if transcript_reference_file == None:
+    log.info(f'No reference transcript file found in {transcript_reference_folder} for species: {ensemble_species.latin_name}.')
+    log.info('Oligopy will fall back on the longest transcript from Ensembl for each gene.')
+else:
+    log.info(f'Found transcript reference file: {transcript_reference_file}.')
+    log.info('Oligopy will try to source gene reference transcripts from this file. If that fails it will fetch the longest transcript from Ensembl.')
+
+log.info("...Fetch reference sequences...")
+#Get FASTA file for requested genes from excel input
 if input_file.count('.xlsx'):
-    generate_fasta(input_file, db_species, defined_variables[f'{db_species}_ensembl_release'], result_folder) 
+    generate_fasta(input_file, ensemble_species, defined_variables[f'{ensemble_species.latin_name}_ensembl_release'], transcript_reference_file, log, result_folder) 
     codebook = pd.read_excel(input_file)
     #Write codebook to output folder
     codebook.to_excel(f'{result_folder}/{input_file}')
@@ -60,9 +103,9 @@ if mask == "T":
         input_file = processing_folder + input_file.split(".")[0] + ".fasta.masked"
 else:
     input_file = input_file
-print(f'Input file: {input_file}')
+log.info(f'Input file: {input_file}')
 
-print("\n...Making candidate probes...")
+log.info("...Making candidate probes...")
 if dic_input["end"] == None:
     data_fasta = TileGene.GetDataFrameProbes(
         input_file, 
@@ -73,7 +116,8 @@ if dic_input["end"] == None:
         end=None, 
         TmMin=tmin, 
         cat1_conc=salt, 
-        cores_n = ncores
+        cores_n = ncores,
+        log = log
         )
 else:
     data_fasta = TileGene.GetDataFrameProbes(
@@ -85,27 +129,24 @@ else:
         end=end, 
         TmMin=tmin, 
         cat1_conc=salt, 
-        cores_n = ncores
+        cores_n = ncores,
+        log = log
         )
 
 
-print("\n...Filtering probes on sequence properties...")
-#os.system("mkdir Results")
-#os.system("mkdir Results/Processing")
-print(data_fasta.shape)
-
-print("Initial Probe number: " + str(data_fasta.shape[0]))
+log.info("...Filtering probes on sequence properties...")
+log.info("Initial Probe number: " + str(data_fasta.shape[0]))
 
 data_fasta = data_fasta[data_fasta["DeltaG"].apply(lambda x: x < -22000*minSize/30)]
-print("Probes after DeltaG filter: " + str(data_fasta.shape[0]))
+log.info("Probes after DeltaG filter: " + str(data_fasta.shape[0]))
 data_fasta = data_fasta[data_fasta["Tm"].apply(lambda x: tmax > x > tmin)]
-print("Probes after Tm filter: " + str(data_fasta.shape[0]))
+log.info("Probes after Tm filter: " + str(data_fasta.shape[0]))
 data_fasta = data_fasta[data_fasta["HomoDimer_dG"].apply(lambda x: x > -9000)]
-print("Probes after Homodimer filter: " + str(data_fasta.shape[0]))
+log.info("Probes after Homodimer filter: " + str(data_fasta.shape[0]))
 data_fasta = data_fasta[data_fasta["Hairpin_dG"].apply(lambda x: x > -9000)]
-print("Probes after Hairpin filter: " + str(data_fasta.shape[0]))
+log.info("Probes after Hairpin filter: " + str(data_fasta.shape[0]))
 data_fasta = data_fasta[data_fasta["GC"].apply(lambda  x: MGC >= x >= mGC)]
-print("Probes after GC filter: " + str(data_fasta.shape[0]))
+log.info("Probes after GC filter: " + str(data_fasta.shape[0]))
 
 if padlock == 'T':
     data_fasta = data_fasta[data_fasta["Probe"].apply(lambda  x: x[14:16] == 'CT' or  x[14:16] == 'CA' or  x[14:16] == 'TA' or x[14:16] == 'GA' or x[14:16] == 'AT' or x[14:16] == 'GT')]
@@ -121,8 +162,12 @@ data_fasta = data_fasta.reset_index(drop = True)
 #######################################################################################################################
 ### Blast
 import multiprocessing
-num_threads = str(multiprocessing.cpu_count())
-#num_threads = str(ncores)
+available_threads = multiprocessing.cpu_count()
+if int(ncores) > available_threads:
+    num_threads = str(available_threads)
+    log.info(f'Requested number of cores: {ncores} is not available falling back to: {num_threads}')
+else:
+    num_threads = ncores
 list_files = []
 list_out_files = []
 data_fasta_data_frames = []
@@ -136,7 +181,6 @@ for cores in range(0,int(num_threads)):
     output_fasta = f"{processing_folder}/output_to_blast3_core"+ str(cores) + ".fasta"
     out_file_blast = f"{processing_folder}/outputBlast_core"+ str(cores) + ".fasta"
     list_out_files.append(out_file_blast)
-    #print('hahah',data_fasta.iloc[50],start,end)
 
     data_fasta_data_frames.append(data_fasta.iloc[start:end])
     list_files.append(output_fasta)
@@ -156,20 +200,21 @@ def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
     ###Processing blast output into previous dataFrame
     #Take output from processingProbes.py and Reset index of data_fasta
     from TileGene import Blast2Dic2
-    dataFrame_blast_i = Blast2Dic2(output_file, db_species)
+    dataFrame_blast_i = Blast2Dic2(output_file)
     dataFrame_blast_i = dataFrame_blast_i.sort_index()
     new_merged_data = pd.concat([data_fasta_i, dataFrame_blast_i], axis = 1)
-    print("Number of Probes with no hits: " + str(sum(new_merged_data["Max_Other_Hit_Identity"].isnull())))
+    log.info("Number of Probes with no hits: " + str(sum(new_merged_data["Max_Other_Hit_Identity"].isnull())))
     new_merged_data = new_merged_data.fillna(0)
     return new_merged_data
 
 
 from joblib import Parallel, delayed
-print("\n...Blasting Probes...")
+log.info("")
+log.info("...Blasting Probes...")
 start = timeit.default_timer()
 result1 = Parallel(n_jobs=int(num_threads))(delayed(Blast)(list_files[i], list_out_files[i], data_fasta_data_frames[i], db, db_species) for i in range(0, int(num_threads)))
 stop = timeit.default_timer()
-print("Blasting time: " + str(stop - start))
+log.info("Blasting time: " + str(stop - start))
 new_merged_data_frame = pd.concat(result1)
 new_merged_data_frame = new_merged_data_frame.reset_index(drop = True)
 
@@ -245,37 +290,37 @@ list_pnas = []
 if datframe_rules5.shape[0] > 0:
     datframe_rules5 = pd.DataFrame(data=datframe_rules5.values, index= datframe_rules5.index, columns=['PNAS'])
     data_fasta_PNAS5 = pd.concat([data_fasta_PNAS5, datframe_rules5], axis=1)
-    print("Probes after PNAS " + "".join(PNAS_rules[5]) + ": " + str(data_fasta_PNAS5.shape[0]))
+    log.info("Probes after PNAS " + "".join(PNAS_rules[5]) + ": " + str(data_fasta_PNAS5.shape[0]))
     list_pnas.append(data_fasta_PNAS5)
 
 if datframe_rules4.shape[0] > 0:
     datframe_rules4 = pd.DataFrame(data=datframe_rules4.values, index= datframe_rules4.index, columns=['PNAS'])
     data_fasta_PNAS4 = pd.concat([data_fasta_PNAS4, datframe_rules4], axis=1)
-    print("Probes after PNAS " + "".join(PNAS_rules[4]) + ": " + str(data_fasta_PNAS4.shape[0]))
+    log.info("Probes after PNAS " + "".join(PNAS_rules[4]) + ": " + str(data_fasta_PNAS4.shape[0]))
     list_pnas.append(data_fasta_PNAS4)
 
 if datframe_rules3.shape[0] > 0:
     datframe_rules3 = pd.DataFrame(data=datframe_rules3.values, index= datframe_rules3.index, columns=['PNAS'])
     data_fasta_PNAS3 = pd.concat([data_fasta_PNAS3, datframe_rules4], axis=1)
-    print("Probes after PNAS " + "".join(PNAS_rules[3]) + ": " + str(data_fasta_PNAS3.shape[0]))
+    log.info("Probes after PNAS " + "".join(PNAS_rules[3]) + ": " + str(data_fasta_PNAS3.shape[0]))
     list_pnas.append(data_fasta_PNAS3)
 
 if datframe_rules2.shape[0] > 0:
     datframe_rules2 = pd.DataFrame(data=datframe_rules2.values, index= datframe_rules2.index, columns=['PNAS'])
     data_fasta_PNAS2 = pd.concat([data_fasta_PNAS2, datframe_rules4], axis=1)
-    print("Probes after PNAS " + "".join(PNAS_rules[2]) + ": " + str(data_fasta_PNAS2.shape[0]))
+    log.info("Probes after PNAS " + "".join(PNAS_rules[2]) + ": " + str(data_fasta_PNAS2.shape[0]))
     list_pnas.append(data_fasta_PNAS2)
 
 if datframe_rules1.shape[0] > 0:
     datframe_rules1 = pd.DataFrame(data=datframe_rules1.values, index= datframe_rules1.index, columns=['PNAS'])
     data_fasta_PNAS1 = pd.concat([data_fasta_PNAS1, datframe_rules4], axis=1)
-    print("Probes after PNAS " + "".join(PNAS_rules[1]) + ": " + str(data_fasta_PNAS1.shape[0]))
+    log.info("Probes after PNAS " + "".join(PNAS_rules[1]) + ": " + str(data_fasta_PNAS1.shape[0]))
     list_pnas.append(data_fasta_PNAS1)
 
 if datframe_rules0.shape[0] > 0:
     datframe_rules0 = pd.DataFrame(data=datframe_rules0.values, index= datframe_rules0.index, columns=['PNAS'])
     data_fasta_PNAS0 = pd.concat([data_fasta_PNAS0, datframe_rules4], axis=1)
-    print("Probes after PNAS " + "".join(PNAS_rules[0]) + ": " + str(data_fasta_PNAS0.shape[0]))
+    log.info("Probes after PNAS " + "".join(PNAS_rules[0]) + ": " + str(data_fasta_PNAS0.shape[0]))
     list_pnas.append(data_fasta_PNAS0)
 
 
@@ -287,13 +332,12 @@ genes = data1["Gene"].unique()
 data1.to_csv(f"{processing_folder}/AllProbes" + dic_input["out"]+".csv")
 data1 = data1.reset_index()
 #################################################################
-#print(data1)
 
 list_n = [12345, 1245, 124, 24, 4, 0]
 ids = [60, 85, 100]
 import timeit
-print("Remaining Probes after blast: " + str(data1.shape[0]))
-print("\n...Eliminating cross-hybridizing probes and constructing final probe set...")
+log.info("")
+log.info("...Eliminating cross-hybridizing probes and constructing final probe set...")
 start = timeit.default_timer()
 dic_genes = {}
 
@@ -345,12 +389,12 @@ def obtainBooleanlist2(g, dataframe, dic):
                     not_overlap = False
 
                 if not_overlap and PNAS >= pnas and ID <= identity and is_gene_too_much==False and len(selected_probes) < 45:
-                    #print(selected_locs_tmp)
-                    #print('the loc', loc)
-                    #print(((loc- s) - selected_locs_tmp[index_loc - 1]))
-                    #print((selected_locs_tmp[index_loc + 1] - (loc + s)))
+                    #log.info(selected_locs_tmp)
+                    #log.info('the loc', loc)
+                    #log.info(((loc- s) - selected_locs_tmp[index_loc - 1]))
+                    #log.info((selected_locs_tmp[index_loc + 1] - (loc + s)))
                     overlap = loc + s
-                    #print(selected_locs)
+                    #log.info(selected_locs)
                     for g_off2 in genes_off:
                         if g_off2 not in added_genes:
                             added_genes[g_off2] = 1
@@ -365,7 +409,7 @@ def obtainBooleanlist2(g, dataframe, dic):
         if len(selected_probes) >= max_probes:
             break
     if len(selected_probes) < min_probes:
-        print('Too few probes for {}, {} probes,relaxing parameters overlap and Noff to -24 and 18'.format(g, len(selected_probes )))
+        log.info('Too few probes for {}, {} probes,relaxing parameters overlap and Noff to -24 and 18'.format(g, len(selected_probes )))
         for identity in ids:
             if len(selected_probes) >= max_probes:
                 break
@@ -376,7 +420,6 @@ def obtainBooleanlist2(g, dataframe, dic):
                     if len(selected_probes) >= max_probes:
                         break
                     loc, s, PNAS, ID, genes_off, genes_off_ident = data_gene.iloc[i][["Location", "Size", "PNAS", "Blast Cutoff", "Other_Hits","Identity_Other_Hits"]]
-                    #print(genes_off[0])
                     #genes_off = [x[1:]for x in genes_off]
                     is_gene_too_much = False
                     if genes_off == 0:
@@ -421,7 +464,7 @@ def obtainBooleanlist2(g, dataframe, dic):
             if len(selected_probes) >= max_probes:
                 break 
 
-    print(g, selected_locs, selected_probes)
+    #log.info(g, selected_locs, selected_probes)
     #gene_boolean_list += [False]*(dataframe[g].shape[0]-len(gene_boolean_list))
     #dic[g] = selected_probes
     return (g, selected_probes)
@@ -432,13 +475,13 @@ if len(dic_dataframes):
     #num_cpu = multiprocessing.cpu_count()
     num_cpu = ncores
     from joblib import Parallel, delayed
-    print('Genes',genes)
+    #log.info('Genes',genes)
     result1 = Parallel(n_jobs=num_cpu)(delayed(obtainBooleanlist2)(g, dic_dataframes, dic_genes) for g in genes)
 else:
-    print("Not probes after blast")
+    log.info("Not probes after blast")
 
 stop = timeit.default_timer()
-print("Time to eliminate cross-hybridizing probes: " + str(stop - start))
+log.info(f"Time to eliminate cross-hybridizing probes: {round(stop - start)} sec")
 #################################################################### Perform analysis on output  ###############################################################
 '''boolean_list = []
 result2 = {}
@@ -456,7 +499,6 @@ data1 = data1[(boolean_list)]
 selected_probes_dfs = []
 for g, sel in result1:
     dg = dic_dataframes[g]
-    print(g, sel)
     dg_selected = dg.loc[sel]
 
     dg_selected= dg_selected.sort_values(["Location"], ascending=[True])
@@ -501,23 +543,22 @@ for i in range(0, data1.shape[0]):
     out_fasta_probeset.write(line2)
 out_fasta_probeset.close()
 
-#print(data1)
 try:
     probe_spec_data_fname = f"{result_folder}/{dic_input['out']}.csv"
     data1.to_csv(probe_spec_data_fname)
-    print(f'Probes and properties writen to: {probe_spec_data_fname}')
+    log.info(f'Probes and properties writen to: {probe_spec_data_fname}')
 except:
-    print("Problem writing file")
+    log.info("Problem writing file")
 
 ################################################ Assign Tails to Generated probeset ##################################################################
 
 if assign_tails == "T":
-
-    print('\n...Assigning shuffeled tails...')
-    print('\nWARNING: USING NEW VERSION OF P5 AND P7 PCR PRIMERS!')
+    log.info("")
+    log.info('...Assigning shuffeled tails...')
+    log.info('WARNING: USING NEW VERSION OF P5 AND P7 PCR PRIMERS!')
     fw = defined_variables['forward_primer']
     rvrc = str(Seq(defined_variables['reverse_primer']).reverse_complement())
-    print(f'Forward: {fw}. Reverse RC: {rvrc}\n')
+    log.info(f'Forward: {fw}. Reverse RC: {rvrc}\n')
 
     dicMarkers = {}
     for record in SeqIO.parse(f"{result_folder}/{dic_input['out']}_probeset.fasta", "fasta"):
@@ -532,7 +573,6 @@ if assign_tails == "T":
     tofasta = []
 
     codebook = codebook[(pd.isna(codebook.Gene) == 0).values]
-    #print(codebook)
 
     for row in codebook.iterrows():
         row = row[1]
@@ -543,7 +583,6 @@ if assign_tails == "T":
         gene_probeSet =  []
         if gene in dicMarkers:
             for p in dicMarkers[gene]:
-                #print(p)
                 rand = np.random.choice([0,1,2,3,4,5],replace=False,size=6)
                 tails = ordertails[rand].tolist()
                 tail5 = sep.join(tails[:3])
@@ -572,26 +611,26 @@ if assign_tails == "T":
     #Format output for Twist Bioscience order sheet
     if probe_type == 'twist':
         data_genesprobes = pd.DataFrame({'Genes':genes_all_probes,'Sequences':all_probes})
-        #print(data_genesprobes)
         order_form_fname = f'{result_folder}/{dic_input["out"]}_{date}_Twist.xlsx'
         with pd.ExcelWriter(order_form_fname) as writer:
             data_genesprobes.to_excel(writer)
-        print(f'Twist Bioscience order form written to: {order_form_fname}')
+        log.info(f'Twist Bioscience order form written to: {order_form_fname}')
     #Format output for IDT Opool order sheet
     elif probe_type in ['opool', 'opool_amp']:
         data_genesprobes = pd.DataFrame({'Pool name': [dic_input["out"]]*len(all_probes), 'Genes':genes_all_probes, 'Sequence':all_probes})
-        #print(data_genesprobes)
+        #log.info(data_genesprobes)
         order_form_fname = f'{result_folder}/{dic_input["out"]}_{date}_IDT.xlsx'
         with pd.ExcelWriter(order_form_fname) as writer:
             data_genesprobes.to_excel(writer)
-        print(f'IDT order form written to: {order_form_fname}')
+        log.info(f'IDT order form written to: {order_form_fname}')
 
 #Cleanup
 if cleanup == "T":
     shutil.rmtree(processing_folder)
-    print(f'Delteted intermediate files originally in: {processing_folder}')
+    log.info(f'Delteted intermediate files originally in: {processing_folder}')
 
 totalfinal = timeit.default_timer()
-print("\nFINISHED. Total time: " + str(totalfinal-totalstart))
+log.info("")
+log.info("FINISHED. Total time: " + str(totalfinal-totalstart))
 
     
