@@ -167,7 +167,7 @@ if int(ncores) > available_threads:
     num_threads = str(available_threads)
     log.info(f'Requested number of cores: {ncores} is not available falling back to: {num_threads}')
 else:
-    num_threads = ncores
+    num_threads = str(ncores)
 list_files = []
 list_out_files = []
 data_fasta_data_frames = []

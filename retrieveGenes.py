@@ -56,6 +56,7 @@ For more information see the `variables.ini` file in the oligopy folder.""")
     tsl = {1:100,2:80,3:70,4:60,5:50,None:0}
     isproteincoding = {True:100,False:0}
     length = 0
+    fetched_form_ensembl = []
     for x in target_gene_list: #genesbarcodes['Gene']:
         if x not in dic_seq.keys():
             try:
@@ -86,3 +87,6 @@ For more information see the `variables.ini` file in the oligopy folder.""")
 
             dic_seq[x] = Seq(longest)
             fileout.write('>'+str(x)+'\n'+str(longest)+'\n')
+            fetched_form_ensembl.append(x)
+
+    log.info(f'Fetched the transcripts of the following genes from Ensembl: {fetched_form_ensembl}')
