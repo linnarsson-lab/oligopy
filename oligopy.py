@@ -579,11 +579,12 @@ if assign_tails == "T":
         sep = np.random.choice(['AA','TT','TA','AT'])
         gene = row.filter(regex='Gene').values[0]
         ordertails = row.filter(regex='Tail').values
+        ntails = len(ordertails)
 
         gene_probeSet =  []
         if gene in dicMarkers:
             for p in dicMarkers[gene]:
-                rand = np.random.choice([0,1,2,3,4,5],replace=False,size=6)
+                rand = np.random.choice(np.arange(ntails), replace=False, size=ntails)
                 tails = ordertails[rand].tolist()
                 tail5 = sep.join(tails[:3])
                 tail3 = sep.join(tails[3:])
