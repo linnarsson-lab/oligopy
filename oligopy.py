@@ -14,6 +14,7 @@ import shutil
 from pyensembl import species
 from glob import glob
 from logger import SimpleLogger
+from math import ceil
 
 totalstart = timeit.default_timer()
 
@@ -156,8 +157,6 @@ if padlock == 'T':
 hdf5 = pd.HDFStore(f"{processing_folder}/FilteredSequences.h5")
 hdf5.put('data1',data_fasta,format="table",data_columns=True)
 hdf5.close()
-#data_fasta.to_csv("Results/Processing/FilteredSequences.csv")
-#data_fasta = pd.read_csv("Results/Processing/FilteredSequences.csv", index_col=0, parse_dates=True)
 data_fasta = data_fasta.reset_index(drop = True)
 #######################################################################################################################
 ### Blast
@@ -205,6 +204,7 @@ def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
     new_merged_data = pd.concat([data_fasta_i, dataFrame_blast_i], axis = 1)
     log.info("Number of Probes with no hits: " + str(sum(new_merged_data["Max_Other_Hit_Identity"].isnull())))
     new_merged_data = new_merged_data.fillna(0)
+    
     return new_merged_data
 
 
@@ -506,7 +506,6 @@ for g, sel in result1:
 
 data1 = pd.concat(selected_probes_dfs, axis=0)
 
-
 dic_of_lists = {}
 for g in genes:
     new_Data_for_analysis = data1[data1["Gene"] == g]
@@ -533,7 +532,7 @@ data_features = data_features.set_index([["Number of Probes", "Min PNAS Rules", 
                                               "STD DeltaG", "Mean Max Other Hit", "Max Max Other Hit"]])
 
 ###Output
-data_features.to_csv(f"{result_folder}/{dic_input['out']}_features_probes.csv")
+data_features.to_excel(f"{result_folder}/{dic_input['out']}_features_probes.xlsx")
 output_probeset_fasta = f"{result_folder}/{dic_input['out']}_probeset.fasta"
 out_fasta_probeset = open(output_probeset_fasta,'w')
 for i in range(0, data1.shape[0]):
@@ -544,9 +543,9 @@ for i in range(0, data1.shape[0]):
 out_fasta_probeset.close()
 
 try:
-    probe_spec_data_fname = f"{result_folder}/{dic_input['out']}.csv"
-    data1.to_csv(probe_spec_data_fname)
-    log.info(f'Probes and properties writen to: {probe_spec_data_fname}')
+    probe_spec_data_fname = f"{result_folder}/{dic_input['out']}.xlsx"
+    data1.to_excel(probe_spec_data_fname)
+    log.info(f'Probes and properties written to: {probe_spec_data_fname}')
 except:
     log.info("Problem writing file")
 
@@ -554,7 +553,7 @@ except:
 
 if assign_tails == "T":
     log.info("")
-    log.info('...Assigning shuffeled tails...')
+    log.info('...Assigning shuffled tails...')
     log.info('WARNING: USING NEW VERSION OF P5 AND P7 PCR PRIMERS!')
     fw = defined_variables['forward_primer']
     rvrc = str(Seq(defined_variables['reverse_primer']).reverse_complement())
@@ -574,9 +573,15 @@ if assign_tails == "T":
 
     codebook = codebook[(pd.isna(codebook.Gene) == 0).values]
 
+    def sep():
+            "Return random spacer"
+            s = np.random.choice(['AA','TT','TA','AT'])
+            return s
+
     for row in codebook.iterrows():
         row = row[1]
-        sep = np.random.choice(['AA','TT','TA','AT'])
+        #sep = np.random.choice(['AA','TT','TA','AT'])
+        
         gene = row.filter(regex='Gene').values[0]
         ordertails = row.filter(regex='Tail').values
         ntails = len(ordertails)
@@ -584,17 +589,22 @@ if assign_tails == "T":
         gene_probeSet =  []
         if gene in dicMarkers:
             for p in dicMarkers[gene]:
+                #Randomize tail order
                 rand = np.random.choice(np.arange(ntails), replace=False, size=ntails)
                 tails = ordertails[rand].tolist()
-                tail5 = sep.join(tails[:3])
-                tail3 = sep.join(tails[3:])
+                first_half = ceil(ntails/2)
+                tails_for_5 = tails[:first_half]
+                tails_for_3 = tails[first_half:]
+                #Join them with random spacers
+                tail5 = ''.join(s + sep() for s in tails_for_5[:-1]) + tails_for_5[-1]
+                tail3 = ''.join(s + sep() for s in tails_for_3[:-1]) + tails_for_3[-1]
 
                 if probe_type == 'twist':
-                    full_length_probe = fw +tail5+sep+str(p)+sep+tail3+ rvrc
+                    full_length_probe = fw + tail5 + sep() + str(p) + sep() + tail3 + rvrc
                 elif probe_type == 'opool':
-                    full_length_probe = str(p)+sep+tail5+sep+tail3
+                    full_length_probe = str(p) + sep() + tail5 + sep() + tail3
                 elif probe_type == 'opool_amp':
-                    full_length_probe = fw + str(p)+sep+tail5+sep+tail3 + rvrc
+                    full_length_probe = fw + str(p) + sep() + tail5 + sep() + tail3 + rvrc
                 else:
                     raise Exeption(f'`Probe_type` not valid. Choose from `twist`, `opool` or `opool_amp`. Not: {probe_type}')
 

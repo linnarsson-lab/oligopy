@@ -103,7 +103,6 @@ def Blast2Dic2(file_blast):
                 if len(dic_blast_res[i][2]) > 0:
                     dic_blast_res[i][3] = max(dic_blast_res[i][2])
 
- 
     dataFrame_blastResults = pd.DataFrame.from_dict(dic_blast_res, "index")
     dataFrame_columns = ["Isoform_Hits", "Other_Hits", "Identity_Other_Hits", "Max_Other_Hit_Identity"]
     dataFrame_blastResults.columns = dataFrame_columns

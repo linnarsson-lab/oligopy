@@ -2,3 +2,5 @@ __pycache__
 Results
 Results*
 codebook_*
+.ipynb_checkpoints
+.ipynb*
