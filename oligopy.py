@@ -192,7 +192,8 @@ for cores in range(0,int(num_threads)):
     out_fasta.close()
 
 def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
-    new_cmd = "blastn -query " + inputblast_fasta + " -db " + database + ' -task "blastn-short" -word_size 10  -strand minus -num_threads ' + num_threads + ' -outfmt "10 qseqid sallacc length pident mismatch" -out ' + output_file
+    new_cmd = f'blastn -query {inputblast_fasta} -db {database} -task "blastn-short" -word_size 10 -strand minus -num_threads 1 -outfmt "10 qseqid sallacc length pident mismatch" -out {output_file}'
+
     from subprocess import call
     a = call(new_cmd, shell = True)
 
