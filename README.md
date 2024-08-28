@@ -125,7 +125,7 @@ Add the species name and release to `variables.ini`
 
 ## 1.6. Repeat Masker
 Only needed when you want to mask repetitive sequences in your own reference transcripts or if you want to use the `-mask` option.  
-Not a requirement for use with default Mouse and Human transcriptome, because the masked fasta files are already made.
+Not a requirement for use with default Mouse, Human and Drosophila transcriptome, because the masked fasta files are already made.
   
 Install from: https://www.repeatmasker.org/ and paste executable path in the variables.ini file.
 For additional instructions see: https://darencard.net/blog/2022-10-13-install-repeat-modeler-masker/  
