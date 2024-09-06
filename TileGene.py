@@ -110,6 +110,97 @@ def Blast2Dic2(file_blast):
     
     return dataFrame_blastResults
 
+def Blast2Dic3(file_blast, transcript_to_gene_dict):
+    """Checks identity of blast hits and put it in dataframe"""
+    #Open file
+    blast_result = pd.read_csv(blast_flist[0], header=0, names=['Probe', 'Transcript', 'nt_match', 'Identity', 'unknown'])
+
+    dic_blast_res = {}
+    #Loop over probes
+    for probe_id, df in blast_result.groupby('Probe', sort=False):
+        #Get probe location, also functions as probe ID
+        i = int(probe_id.split('_')[-1])
+        #Get the query gene name (NOT FBgn!!!)
+        query_gene = probe_id.split(f'_iLoc:_{i}')[0]
+        #Future content: soform_Hits, Other_Hits, Identity_Other_Hits, Max_Other_Hit_Identity
+        dic_blast_res[i] = []
+        
+        #Make filter for hits of isoforms
+        filt = np.array([transcript_to_gene_dict[i] for i in df.loc[:,'Transcript']]) == query_gene
+        
+        #Add hits to isoforms
+        dic_blast_res[i].append(list(df.Transcript[filt])) 
+        #Add hits to other genes
+        dic_blast_res[i].append(list(df.Transcript[~filt])) 
+        #Add Identity other hits
+        id_other = df.nt_match[~filt]
+        dic_blast_res[i].append(list(id_other)) 
+        #Add maxIdentity other hits
+        dic_blast_res[i].append(max(id_other)) 
+
+    #compile results in dataframe    
+    dataFrame_blastResults = pd.DataFrame.from_dict(dic_blast_res, "index")
+    dataFrame_columns = ["Isoform_Hits", "Other_Hits", "Identity_Other_Hits", "Max_Other_Hit_Identity"]
+    dataFrame_blastResults.columns = dataFrame_columns
+    dataFrame_blastResults[["Max_Other_Hit_Identity"]] = dataFrame_blastResults[["Max_Other_Hit_Identity"]].apply(pd.to_numeric)
+
+    return dataFrame_blastResults
+
+    
+
+def Blast2Dic2_NEW_ALEJANDRO(file_blast, db_species):
+    """
+    
+    
+    This assumes that the blasting database is formatted like this:
+    >Naa35|ENSMUST00000168242
+    CTCCTCTTGTACGTGTATCTTTCAGTGAAAGTGTGTAAGTGTTTTGGTGATTTGTTTGCT
+    AGACCAGTGCTGTTGCAGAGGCTCAGAAACTGATGGTCCAGGCGGCAGACCTTCTTTCTG
+    CCATTCACACCTCATTGCACCACGGCATCCAGGCTCAGAATGGCACTACCAAAGGAGGAT
+    TTTTTCTGTGA etc...
+    
+    """
+    dic = {}
+    import pandas as pd
+
+    for line in open(file_blast):
+
+        line = line.strip("\n").split(",")
+        if line[0] in dic:
+            dic[line[0]].append(line[1:])
+        else:
+            dic[line[0]] = [line[1:]]
+    dic_blast_res = {}
+    ### The values in the dic will be: whether there is a completely unique result, whether the probe gives only hits
+    ### to other isoforms, maximum percentage identity to isoforms, isoforms names, hits to others.
+    ###based on BLAST output eliminate GENSCAN blast subjects
+
+    for probe_hits in dic:
+        isoform_hits, other_hits, isoform_hits_ident, other_hits_ident = [], [], [], []
+        subject_name = probe_hits.split("_")
+        i = int(subject_name[-1])
+        subject_gene = subject_name[0].split(".")[0]
+        subject_gene = subject_gene.split('|')[0]
+        
+        #print(subject_gene)
+        
+        dic_blast_res[i] = [[],[],[],0]
+        for result_i in dic[probe_hits]:
+            query_gene = result_i[0].split("|")[0]
+            #query_isoform = result_i[0].split("|")[1]
+            #print(query_gene)
+            if query_gene.count(':'):
+                query_gene = query_gene.split(':')[0]
+            #print(subject_gene,query_gene)
+            query_identity = float(result_i[1])-float(result_i[3])
+            if query_gene != subject_gene and query_identity > 15:
+                dic_blast_res[i][1].append(query_gene)
+                dic_blast_res[i][2].append(query_identity)
+                if len(dic_blast_res[i][2]) > 0:
+                    dic_blast_res[i][3] = max(dic_blast_res[i][2])
+            if query_gene == subject_gene:
+                dic_blast_res[i][0].append(result_i[0])
+
 def processingFastaProbes(x, y, size, start, end, MinSize, MaxSize, TmMin, cat1_conc):
     class_gene = Seq2Probes(x, y)
     #print(class_gene.name)

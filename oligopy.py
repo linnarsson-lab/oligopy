@@ -193,7 +193,41 @@ for cores in range(0,int(num_threads)):
     out_fasta.close()
 pkl.dump(data_fasta_data_frames, open(f"{processing_folder}/data_fasta_data_frames.pkl", 'wb'))
 
-def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
+#Make dictionary linking transcript name to gene symbol
+def link_transcript_to_gene(fasta_file):
+    """
+    Makes a dictionary linking transcript ID to gene name
+    
+    First tries to get gene_symbol and if that is not prestent
+    in the fasta file it fetches the gene ID.
+    """
+    transcript_to_gene = {}
+
+    # Parse the FASTA file using SeqIO
+    for record in SeqIO.parse(fasta_file, "fasta"):
+        header = record.description
+        # Extract transcript ID and gene symbol from the header
+        transcript_id = header.split()[0]  # The first element is the transcript ID
+        gene_symbol = None
+        # Iterate over the fields to find the gene symbol
+        for field in header.split():
+            if field.startswith("gene_symbol:"):
+                gene_symbol = field.split("gene_symbol:", 1)[1]
+                break
+            #Continue if gene_symbol is not found with gene name
+            if field.startswith("gene:"):
+                gene_symbol = field.split("gene:", 1)[1]
+
+        # Add the transcript ID and gene symbol to the dictionary
+        if transcript_id and gene_symbol:
+            transcript_to_gene[transcript_id] = gene_symbol
+
+    return transcript_to_gene
+#Link 
+transcript_to_gene_dict = parse_fasta_with_biopython(db)
+log.info(f"Made dictionary linking transcript ID to gene symbol (or gene ID if no symbol present). Used data from transcript database: {db}")
+
+def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species, transcript_to_gene_dict):
     new_cmd = f'blastn -query {inputblast_fasta} -db {database} -task "blastn-short" -word_size 10 -strand minus -num_threads 1 -outfmt "10 qseqid sallacc length pident mismatch" -out {output_file}'
 
     from subprocess import call
@@ -201,8 +235,8 @@ def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
 
     ###Processing blast output into previous dataFrame
     #Take output from processingProbes.py and Reset index of data_fasta
-    from TileGene import Blast2Dic2
-    dataFrame_blast_i = Blast2Dic2(output_file)
+    from TileGene import Blast2Dic3
+    dataFrame_blast_i = Blast2Dic3(output_file, transcript_to_gene_dict)
     dataFrame_blast_i = dataFrame_blast_i.sort_index()
     new_merged_data = pd.concat([data_fasta_i, dataFrame_blast_i], axis = 1)
     log.info("Number of Probes with no hits: " + str(sum(new_merged_data["Max_Other_Hit_Identity"].isnull())))
