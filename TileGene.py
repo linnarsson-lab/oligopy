@@ -112,7 +112,7 @@ def Blast2Dic2(file_blast):
 
 def Blast2Dic3(file_blast, transcript_to_gene_dict):
     """Checks identity of blast hits and put it in dataframe"""
-    #Open file
+    #Open Blast output. Treat blast output as csv file.
     blast_result = pd.read_csv(blast_flist[0], header=0, names=['Probe', 'Transcript', 'nt_match', 'Identity', 'unknown'])
 
     dic_blast_res = {}

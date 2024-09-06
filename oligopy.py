@@ -223,7 +223,7 @@ def link_transcript_to_gene(fasta_file):
             transcript_to_gene[transcript_id] = gene_symbol
 
     return transcript_to_gene
-#Link 
+
 transcript_to_gene_dict = parse_fasta_with_biopython(db)
 log.info(f"Made dictionary linking transcript ID to gene symbol (or gene ID if no symbol present). Used data from transcript database: {db}")
 
