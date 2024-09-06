@@ -15,6 +15,7 @@ from pyensembl import species
 from glob import glob
 from logger import SimpleLogger
 from math import ceil
+import pickle as pkl
 
 totalstart = timeit.default_timer()
 
@@ -190,6 +191,7 @@ for cores in range(0,int(num_threads)):
         line2 = ">" + name + "\n" + probe + "\n"
         out_fasta.write(line2)
     out_fasta.close()
+pkl.dump(data_fasta_data_frames, open(f"{processing_folder}/data_fasta_data_frames.pkl", 'wb'))
 
 def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species):
     new_cmd = f'blastn -query {inputblast_fasta} -db {database} -task "blastn-short" -word_size 10 -strand minus -num_threads 1 -outfmt "10 qseqid sallacc length pident mismatch" -out {output_file}'
@@ -330,8 +332,9 @@ data1["PNAS"] = data1["PNAS"].apply(pd.to_numeric)
 data1 = data1.sort_values(["Gene", "Location", "PNAS", "Blast Cutoff"], ascending=[True, True, False, True])
 genes = data1["Gene"].unique()
 
-data1.to_csv(f"{processing_folder}/AllProbes" + dic_input["out"]+".csv")
+data1.to_excel(f"{processing_folder}/AllProbes" + dic_input["out"]+".xlsx")
 data1 = data1.reset_index()
+pkl.dump(data1, open(f"{processing_folder}/AllProbes_{dic_input['out']}.pkl", 'wb'))
 #################################################################
 
 list_n = [12345, 1245, 124, 24, 4, 0]
