@@ -20,9 +20,18 @@ import pickle as pkl
 totalstart = timeit.default_timer()
 
 
+
+
 #User input
 dic_input = argparseinput.arginput()
-input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, overlap_distance, ncores, Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup, transcript_reference_file = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["overlap"], dic_input["ncores"], dic_input["Noff"] , dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes'], dic_input["assign_tails"], dic_input['cleanup'], dic_input['reference_sequence']
+keys = ["query", "t", "T", "start", "end", "db", 
+        "salt", "m", "M", "out", "mask", "size", 
+        "mGC", "MGC", "blast", "spacing", "ncores", "low_Noff", 
+        "medium_Noff", "high_Noff", "max_probes", "db_species", 'padlock', 'probe_type', 
+        'max_probes_overlapping', 'min_probes', "assign_tails", 'cleanup', 'reference_sequence', 'medium_overlap', 
+        'max_overlap']
+input_values = (dic_input[k] for k in keys)
+input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, spacing, ncores, low_Noff, medium_Noff, high_Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup, transcript_reference_file, medium_overlap, max_overlap = input_values
 
 #Paths
 date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -35,8 +44,16 @@ oligopy_path = os.path.dirname(os.path.abspath(__file__))
 #Logger
 log = SimpleLogger(f'{result_folder}/Oligopy_log.log').get_logger()
 
+
+#Log input
+log.info("")
+log.info("...Commandline input...")
+for i, val in enumerate([input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, spacing, ncores, low_Noff, medium_Noff, high_Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup, transcript_reference_file, medium_overlap, max_overlap]):
+    log.info(f'{keys[i]}: {val}')
 log.info("")
 log.info("...Input handling...")
+
+#input_file, tmin, tmax, start, end, db, salt, minSize, maxSize, output, mask, size, mGC, MGC, blast, spacing, ncores, low_Noff, medium_Noff, high_Noff, max_probes, db_species,padlock,probe_type, max_probes_overlapping, min_probes, assign_tails, cleanup, transcript_reference_file, medium_overlap, max_overlap = dic_input["query"], dic_input["t"], dic_input["T"], dic_input["start"], dic_input["end"], dic_input["db"], dic_input["salt"], dic_input["m"], dic_input["M"], dic_input["out"], dic_input["mask"], dic_input["size"], dic_input["mGC"], dic_input["MGC"], dic_input["blast"], dic_input["spacing"], dic_input["ncores"], dic_input["low_Noff"], dic_input["medium_Noff"], dic_input["high_Noff"], dic_input["max_probes"], dic_input["db_species"],dic_input['padlock'],dic_input['probe_type'], dic_input['max_probes_overlapping'], dic_input['min_probes'], dic_input["assign_tails"], dic_input['cleanup'], dic_input['reference_sequence'], dic_input['medium_overlap'], dic_input['max_overlap']
 
 #Handle species
 try:
@@ -224,7 +241,7 @@ def link_transcript_to_gene(fasta_file):
 
     return transcript_to_gene
 
-transcript_to_gene_dict = parse_fasta_with_biopython(db)
+transcript_to_gene_dict = link_transcript_to_gene(db)
 log.info(f"Made dictionary linking transcript ID to gene symbol (or gene ID if no symbol present). Used data from transcript database: {db}")
 
 def Blast(inputblast_fasta, output_file, data_fasta_i, database, db_species, transcript_to_gene_dict):
@@ -249,7 +266,7 @@ from joblib import Parallel, delayed
 log.info("")
 log.info("...Blasting Probes...")
 start = timeit.default_timer()
-result1 = Parallel(n_jobs=int(num_threads))(delayed(Blast)(list_files[i], list_out_files[i], data_fasta_data_frames[i], db, db_species) for i in range(0, int(num_threads)))
+result1 = Parallel(n_jobs=int(num_threads))(delayed(Blast)(list_files[i], list_out_files[i], data_fasta_data_frames[i], db, db_species, transcript_to_gene_dict) for i in range(0, int(num_threads)))
 stop = timeit.default_timer()
 log.info("Blasting time: " + str(stop - start))
 new_merged_data_frame = pd.concat(result1)
@@ -363,6 +380,8 @@ if datframe_rules0.shape[0] > 0:
 
 data1 = pd.concat(list_pnas)
 data1["PNAS"] = data1["PNAS"].apply(pd.to_numeric)
+#Calculate max overlap percentage with other genes
+data1.loc[:, 'Max_offtarget_mapping_percentage'] = (data1.loc[:, 'Max_Other_Hit_Identity'] / data1.loc[:, 'Size']) * 100
 data1 = data1.sort_values(["Gene", "Location", "PNAS", "Blast Cutoff"], ascending=[True, True, False, True])
 genes = data1["Gene"].unique()
 
@@ -389,155 +408,218 @@ for g in genes:
 
 list_n = [1245, 124, 24, 4]
 
-def obtainBooleanlist2(g, dataframe, dic):
-    data_gene = dataframe[g]
-    final_loc = data_gene.shape[0]
-    final_loc = data_gene.iloc[final_loc - 1]["Location"]
-    #gene_boolean_list = []
-    selected_probes = []
-    selected_locs = [-100, 1000000]
-    total_overlaps = -1
-    for identity in ids:
-        if len(selected_probes) >= max_probes:
-            break
-        for pnas in list_n:
-            #gene_boolean_list = []
-            added_genes = {}
-            overlap = -3
-            for i, ind in zip(range(0, data_gene.shape[0]), data_gene.index):
-                if len(selected_probes) >= max_probes:
-                    break
-                loc, s, PNAS, ID, genes_off, genes_off_ident = data_gene.iloc[i][["Location", "Size", "PNAS", "Blast Cutoff", "Other_Hits","Identity_Other_Hits"]]
-                is_gene_too_much = False
-                if genes_off == 0:
-                    genes_off = []
-                if ID >= 65:
-                    for g_off, g_off_id in zip(genes_off, genes_off_ident):
-                        if g_off in added_genes and added_genes[g_off] >= Noff and float(g_off_id)/s > 0.65:
-                            is_gene_too_much = True
+def obtainBooleanlist2(gene, data_gene, verbose=False):
 
-                loc = data_gene.iloc[i]["Location"]
-                selected_locs_tmp = selected_locs + [loc]
-                selected_locs_tmp = sorted(selected_locs_tmp)
-                index_loc = selected_locs_tmp.index(loc)
-                
-                if ((loc- 30) - selected_locs_tmp[index_loc - 1])  >= overlap_distance and (selected_locs_tmp[index_loc + 1] - (loc + s)) >= overlap_distance and loc not in selected_locs:
-                    not_overlap = True
+    def _calculate_total_overlap_and_min_distance(new_range, selected_locs):
+        """
+        Calculates the total overlap of a new range with a lsit of excisting
+        ranges. Also calculates the minimal distance of the new range to the
+        closest excisting ranges. 
+        Input:
+            `new_range` (list): Like [120, 150]
+            `seleced_locs` (list): Like [[10, 40], [160, 190]]
+        Returns:
+            total_overlap (int): Total number of positions that overlap.
+            min_distance (int/float): Mimimum distance of 
+        """
+        covered_positions = set()  # A set to track covered positions
+        min_distance = float('inf')  # Initialize with a large value for the minimum distance
+
+        for loc in selected_locs:
+            # Calculate the start and end of the overlap
+            overlap_start = max(new_range[0], loc[0])
+            overlap_end = min(new_range[1], loc[1])
+
+            # Check if there is an overlap
+            if overlap_start <= overlap_end:
+                # Add the positions in the overlap to the set
+                covered_positions.update(range(overlap_start, overlap_end + 1))
+                min_distance = 0  # If there's an overlap, the minimum distance is 0
+            else:
+                # If no overlap, calculate the distance
+                if new_range[1] < loc[0]:
+                    # new_range is to the left of loc
+                    distance = loc[0] - new_range[1]
+                elif new_range[0] > loc[1]:
+                    # new_range is to the right of loc
+                    distance = new_range[0] - loc[1]
                 else:
-                    not_overlap = False
+                    distance = 0
 
-                if not_overlap and PNAS >= pnas and ID <= identity and is_gene_too_much==False and len(selected_probes) < 45:
-                    #log.info(selected_locs_tmp)
-                    #log.info('the loc', loc)
-                    #log.info(((loc- s) - selected_locs_tmp[index_loc - 1]))
-                    #log.info((selected_locs_tmp[index_loc + 1] - (loc + s)))
-                    overlap = loc + s
-                    #log.info(selected_locs)
-                    for g_off2 in genes_off:
-                        if g_off2 not in added_genes:
-                            added_genes[g_off2] = 1
-                        else:
-                            added_genes[g_off2] += 1
-                    selected_locs.append(loc)
-                    selected_locs = sorted(selected_locs)
-                    selected_probes.append(ind)
+                # Update the minimum distance if the current one is smaller
+                min_distance = min(min_distance, distance)
 
-            if len(selected_probes) >= max_probes:
-                break
-        if len(selected_probes) >= max_probes:
-            break
-    if len(selected_probes) < min_probes:
-        log.info('Too few probes for {}, {} probes,relaxing parameters overlap and Noff to -24 and 18'.format(g, len(selected_probes )))
-        for identity in ids:
-            if len(selected_probes) >= max_probes:
-                break
+        # The total overlap is the number of unique covered positions
+        total_overlap = len(covered_positions)
+
+        return total_overlap, min_distance
+    
+    def _select_probes(r, max_n_offtarget, allow_overlapping=False, allowed_overlap=None):
+        old_message = ''
+
+        selected_probes = r['selected_probes']
+        selected_locs = r['selected_locs']
+        offtarget_gene_count = r['offtarget_gene_count']
+        n_probes_overlapping = r['n_probes_overlapping']
+        nt_overlap = r['nt_overlap']
+        total_overlapping_nucleotides = r['total_overlapping_nucleotides']
+
+        #Loop over blast cutoff values, starting with lowest overlap with other genes
+        for blast_value, df_blast in data_gene.groupby('Blast Cutoff', sort=True):
+            df_pnas_group = df_blast.groupby('PNAS')
+
+            #Loop over pnas values, starting with best probes
             for pnas in list_n:
-                #gene_boolean_list = []
-                added_genes = {}
-                for i, ind in zip(range(0, data_gene.shape[0]), data_gene.index):
+                #Check if pnas value is in groups
+                if pnas in df_pnas_group.groups.keys(): 
+                    df_pnas = df_pnas_group.get_group(pnas)
+
+                    #Sort possible probes based on least overlap with other genes
+                    df_pnas = df_pnas.sort_values('Max_offtarget_mapping_percentage')
+
+                    #Loop over individual probes
+                    for index, row in df_pnas.iterrows():
+                        #Get data
+                        loc, s, ID, transcripts_off, transcripts_off_ident = row[['Location', 'Size', 'Blast Cutoff', 'Other_Hits', 'Identity_Other_Hits']]
+
+                        #Only continue if probe has not already been selected, and required number of probes has not been reached
+                        if index not in selected_probes and len(selected_probes) < max_probes:
+                            if transcripts_off == 0:
+                                transcripts_off = []
+
+                            #Check if there are too many off target effects on the same gene. 
+                            is_gene_too_much = False
+                            if blast_value > 65:
+                                for tr_off, g_off_id in zip(transcripts_off, transcripts_off_ident):
+                                    g_off = transcript_to_gene_dict[tr_off]
+                                    if g_off in offtarget_gene_count and offtarget_gene_count[g_off] >= max_n_offtarget and float(g_off_id)/s > 0.65:
+                                        is_gene_too_much = True
+
+                            #Check if new probe would overlap with the seleced set
+                            total_overlap, min_distance = _calculate_total_overlap_and_min_distance([loc, loc+s], selected_locs)
+
+                            if allow_overlapping == False:
+                                #Overlap is not allowed: Check for 0 overlap and a minimal distance between probes
+                                #if len(selected_probes) == 0: #No overlap in fir
+                                #    not_overlap = True
+                                if total_overlap == 0 and min_distance >= spacing:  
+                                    not_overlap = True
+                                else:
+                                    #print(f'not overlap = False. {total_overlap}, {min_distance}')
+                                    not_overlap = False
+
+                            else:
+                                #Overlap is allowed
+                                if total_overlap < allowed_overlap:
+                                    not_overlap = True #Just set it to True
+                                    n_probes_overlapping += 1
+                                    total_overlapping_nucleotides += total_overlap
+                                else:
+                                    not_overlap = False
+
+                            #Test all requirements:
+                            if not_overlap and not is_gene_too_much and n_probes_overlapping <= max_probes_overlapping:
+                                selected_probes.append(index)
+                                selected_locs.append([loc, loc+s])
+                                nt_overlap.append(total_overlap)
+                            
+                            #Debugging
+                            if verbose:
+                                message = f"ID: {blast_value}, pnas: {pnas:6}, too much: {is_gene_too_much}, n overlapping: {n_probes_overlapping}, overlapping_nucleotides: {total_overlapping_nucleotides}, n_probes: {len(selected_probes)}"
+                                if message != old_message:
+                                    print(f'Loc: {loc:4}  not overlap: {str(not_overlap):5}, ' + message)
+                                old_message = message
+
                     if len(selected_probes) >= max_probes:
                         break
-                    loc, s, PNAS, ID, genes_off, genes_off_ident = data_gene.iloc[i][["Location", "Size", "PNAS", "Blast Cutoff", "Other_Hits","Identity_Other_Hits"]]
-                    #genes_off = [x[1:]for x in genes_off]
-                    is_gene_too_much = False
-                    if genes_off == 0:
-                        genes_off = []
-                    if ID >= 65:
-                        for g_off, g_off_id in zip(genes_off, genes_off_ident):
-                            if g_off in added_genes and added_genes[g_off] >= 18 and float(g_off_id)/s > 0.65:
-                                is_gene_too_much = True
-
-                    loc = data_gene.iloc[i]["Location"]
-
-                    selected_locs_tmp = selected_locs + [loc]
-                    selected_locs_tmp = sorted(selected_locs_tmp)
-                    index_loc = selected_locs_tmp.index(loc)
-                    
-                    if ((loc- 30) - selected_locs_tmp[index_loc - 1])  >= overlap_distance and (selected_locs_tmp[index_loc + 1] - (loc + s)) >= overlap_distance and loc not in selected_locs:
-                        not_overlap = True
-                        overlap = min(((loc- 30) - selected_locs_tmp[index_loc - 1]), (selected_locs_tmp[index_loc + 1] - (loc + s)))
-
-                    else:
-                        if total_overlaps <= max_probes_overlapping and loc not in selected_locs and overlap > overlap_distance/2:
-                            not_overlap = True
-
-                            total_overlaps += 1
-                        else:
-                            not_overlap = False
-
-                    if not_overlap and PNAS >= pnas and ID <= identity and is_gene_too_much==False and len(selected_probes) < 45:
-                    #if loc > (overlap + -10) :
-                        overlap = loc + s
-                        for g_off2 in genes_off:
-                            if g_off2 not in added_genes:
-                                added_genes[g_off2] = 1
-                            else:
-                                added_genes[g_off2] += 1
-                        selected_locs.append(loc)
-                        selected_locs = sorted(selected_locs)
-                        selected_probes.append(ind)
-
-                if len(selected_probes) >= max_probes:
-                    break
             if len(selected_probes) >= max_probes:
-                break 
+                    break
 
-    #log.info(g, selected_locs, selected_probes)
-    #gene_boolean_list += [False]*(dataframe[g].shape[0]-len(gene_boolean_list))
-    #dic[g] = selected_probes
-    return (g, selected_probes)
+        r['selected_probes'] = selected_probes
+        r['selected_locs'] = selected_locs
+        r['offtarget_gene_count'] = offtarget_gene_count
+        r['n_probes_overlapping'] = n_probes_overlapping
+        r['nt_overlap'] = nt_overlap
+        r['total_overlapping_nucleotides'] = total_overlapping_nucleotides
+        return r
+
+    
+    #Change dtype of location
+    data_gene = data_gene.convert_dtypes({'Location': int})
+    
+    #Result storage
+    results = {'selected_probes' : [],
+               'selected_locs' : [],
+               'offtarget_gene_count' : {},
+               'n_probes_overlapping' : 0,
+               'nt_overlap' : [],
+               'total_overlapping_nucleotides' : 0}
+
+    #Run selection
+    #First pass without overlapping
+    results = _select_probes(results, low_Noff, allow_overlapping=False)
+    level = '1_Simple'
+    probe_origin = [len(results['selected_probes'])]
+
+    #If not enough probes enter medium overlapping mode
+    if len(results['selected_probes']) < max_probes:
+        log.info(f'Gene: {gene}. Entering medium overlapping mode, overlap: {medium_overlap}, after only finding {len(results["selected_probes"])} probes.')
+        results = _select_probes(results, low_Noff, allow_overlapping=True, allowed_overlap=medium_overlap)
+        level = '2_Medium_overlap'
+        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+
+    #If not minimum number of probes enter high overlapping mode
+    if len(results['selected_probes']) < min_probes:
+        log.info(f'Gene: {gene}. Entering high overlapping mode, overlap: {max_overlap}, after only finding {len(results["selected_probes"])} probes.')
+        results = _select_probes(results, low_Noff, allow_overlapping=True, allowed_overlap=max_overlap)
+        level = '3_High_overlap'
+        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+
+    #If not minimum number probes enter medium offtarget mode
+    if len(results['selected_probes']) < min_probes:
+        log.info(f'Gene: {gene}. Entering medium offtarget mode, from {low_Noff} to {medium_Noff} allowed offtarget hits to the same gene, after only finding {len(results["selected_probes"])} probes.')
+        results = _select_probes(results, medium_Noff, allow_overlapping=False) #No overlap because probes will then preferentially go to the offtarget transcripts. 
+        level = '4_Medium_offtarget'
+        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+    
+    #If not minimum number probes enter high offtarget mode
+    if len(results['selected_probes']) < min_probes:
+        log.info(f'Gene: {gene}. Entering high offtarget mode, from {medium_Noff} to {high_Noff} allowed offtarget hits to the same gene, after only finding {len(results["selected_probes"])} probes.')
+        results = _select_probes(results, high_Noff, allow_overlapping=False) #No overlap because probes will then preferentially go to the offtarget transcripts. 
+        level = '5_High_offtarget'
+        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+    
+    if len(results['selected_probes']) < min_probes:
+        level = '6_Few_probes'
+
+    return gene, results['selected_probes'], results['nt_overlap'], level, probe_origin
 
 
-if len(dic_dataframes):
-    import multiprocessing
-    #num_cpu = multiprocessing.cpu_count()
-    num_cpu = ncores
-    from joblib import Parallel, delayed
-    #log.info('Genes',genes)
-    result1 = Parallel(n_jobs=num_cpu)(delayed(obtainBooleanlist2)(g, dic_dataframes, dic_genes) for g in genes)
-else:
-    log.info("Not probes after blast")
+#if len(dic_dataframes):
+#    import multiprocessing
+#    #num_cpu = multiprocessing.cpu_count()
+#    num_cpu = ncores
+#    from joblib import Parallel, delayed
+#    #log.info('Genes',genes)
+#    result1 = Parallel(n_jobs=num_cpu)(delayed(obtainBooleanlist2)(g, dic_dataframes[g]) for g in genes)
+#else:
+#    log.info("Not probes after blast")
+
+#Temporary bypass
+result1 = [obtainBooleanlist2(g, dic_dataframes[g]) for g in genes]
+
 
 stop = timeit.default_timer()
 log.info(f"Time to eliminate cross-hybridizing probes: {round(stop - start)} sec")
 #################################################################### Perform analysis on output  ###############################################################
-'''boolean_list = []
-result2 = {}
-for dic in result1:
-    result2.update(dic)
-
-for gene in data1["Gene"]:
-    if gene in result2:
-        boolean_list += result2[gene]
-        del result2[gene]
-
-data1 = data1[(boolean_list)]
-'''
 
 selected_probes_dfs = []
-for g, sel in result1:
+for g, sel, ol, level, probe_origin in result1:
     dg = dic_dataframes[g]
     dg_selected = dg.loc[sel]
+    dg_selected.loc[sel, 'Probe_overlapping_nucleotides'] = ol
+    dg_selected.loc[sel, 'Processing_level'] = level
+    dg_selected.loc[sel, 'Probe_origin'] = str(probe_origin)
 
     dg_selected= dg_selected.sort_values(["Location"], ascending=[True])
     selected_probes_dfs.append(dg_selected)
@@ -561,13 +643,19 @@ for g in genes:
                                  new_Data_for_analysis["DeltaG"].describe().iloc[1],
                                  new_Data_for_analysis["DeltaG"].describe().iloc[2],
                                  new_Data_for_analysis["Max_Other_Hit_Identity"].describe().iloc[1],
-                                 new_Data_for_analysis["Max_Other_Hit_Identity"].describe().iloc[7]
-                                 ]
+                                 new_Data_for_analysis["Max_Other_Hit_Identity"].describe().iloc[7],
+                                 new_Data_for_analysis["Probe_overlapping_nucleotides"].sum(),
+                                 new_Data_for_analysis["Max_offtarget_mapping_percentage"].describe().iloc[1],
+                                 new_Data_for_analysis["Max_offtarget_mapping_percentage"].describe().iloc[2],
+                                 new_Data_for_analysis['Processing_level'].iloc[0],
+                                 new_Data_for_analysis['Probe_origin'].iloc[0] ]
     dic_of_lists[g] = list_probe_g_features
 data_features = pd.DataFrame(dic_of_lists)
 data_features = data_features.set_index([["Number of Probes", "Min PNAS Rules", "Max Allowed Identity", "Mean Location", "STD Location", "Min Location",
                                               "Max Location", "Mean Tm", "STD Tm", "Mean GC%", "STD GC%", "Mean DeltaG",
-                                              "STD DeltaG", "Mean Max Other Hit", "Max Max Other Hit"]])
+                                              "STD DeltaG", "Mean Max Offtarget Hit", "Max Max Offtarget Hit", "Probe overlapping nucleotides",
+                                              "Mean Max_offtarget_mapping_percentage", "STD Max_offtarget_mapping_percentage", "Probe selection difficulty",
+                                              "Probe origin step"]])
 
 ###Output
 data_features.to_excel(f"{result_folder}/{dic_input['out']}_features_probes.xlsx")

@@ -69,6 +69,7 @@ class Seq2Probes:
         return list_probes
 
 def Blast2Dic2(file_blast):
+    "Old version of Blast2Dict2"
     dic = {}
     import pandas as pd
 
@@ -111,7 +112,11 @@ def Blast2Dic2(file_blast):
     return dataFrame_blastResults
 
 def Blast2Dic3(file_blast, transcript_to_gene_dict):
-    """Checks identity of blast hits and put it in dataframe"""
+    """
+    Checks identity of blast hits and put it in dataframe
+    Uses a dictionary that matches transcript IDs to a gene name.
+    
+    """
     #Open Blast output. Treat blast output as csv file.
     blast_result = pd.read_csv(file_blast, header=0, names=['Probe', 'Transcript', 'nt_match', 'Identity', 'unknown'])
 
