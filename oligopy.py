@@ -281,7 +281,7 @@ def blastingclass(max_blast_hit_n):
         return 100
 
 new_merged_data_frame['Blast Cutoff'] = list(map(blastingclass , list((((new_merged_data_frame["Max_Other_Hit_Identity"] / new_merged_data_frame["Size"])*100)))))
-#Uncomment if you want to save all possible probes
+#Uncomment if you want to save all possible probes, can be very big
 #new_merged_data_frame.to_csv(f'{result_folder}/probesunique.csv')
 
 #hdf5 = pd.HDFStore("Results/Processing/UniqueIsoformProbes.h5")
@@ -385,7 +385,7 @@ data1.loc[:, 'Max_offtarget_mapping_percentage'] = (data1.loc[:, 'Max_Other_Hit_
 data1 = data1.sort_values(["Gene", "Location", "PNAS", "Blast Cutoff"], ascending=[True, True, False, True])
 genes = data1["Gene"].unique()
 
-data1.to_excel(f"{processing_folder}/AllProbes" + dic_input["out"]+".xlsx")
+#data1.to_csv(f"{processing_folder}/AllProbes" + dic_input["out"]+".csv")
 data1 = data1.reset_index()
 pkl.dump(data1, open(f"{processing_folder}/AllProbes_{dic_input['out']}.pkl", 'wb'))
 #################################################################
@@ -566,28 +566,28 @@ def obtainBooleanlist2(gene, data_gene, verbose=False):
         log.info(f'Gene: {gene}. Entering medium overlapping mode, overlap: {medium_overlap}, after only finding {len(results["selected_probes"])} probes.')
         results = _select_probes(results, low_Noff, allow_overlapping=True, allowed_overlap=medium_overlap)
         level = '2_Medium_overlap'
-        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+        probe_origin.append(len(results['selected_probes']) - sum(probe_origin))
 
     #If not minimum number of probes enter high overlapping mode
     if len(results['selected_probes']) < min_probes:
         log.info(f'Gene: {gene}. Entering high overlapping mode, overlap: {max_overlap}, after only finding {len(results["selected_probes"])} probes.')
         results = _select_probes(results, low_Noff, allow_overlapping=True, allowed_overlap=max_overlap)
         level = '3_High_overlap'
-        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+        probe_origin.append(len(results['selected_probes']) - sum(probe_origin))
 
     #If not minimum number probes enter medium offtarget mode
     if len(results['selected_probes']) < min_probes:
         log.info(f'Gene: {gene}. Entering medium offtarget mode, from {low_Noff} to {medium_Noff} allowed offtarget hits to the same gene, after only finding {len(results["selected_probes"])} probes.')
         results = _select_probes(results, medium_Noff, allow_overlapping=False) #No overlap because probes will then preferentially go to the offtarget transcripts. 
         level = '4_Medium_offtarget'
-        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+        probe_origin.append(len(results['selected_probes']) - sum(probe_origin))
     
     #If not minimum number probes enter high offtarget mode
     if len(results['selected_probes']) < min_probes:
         log.info(f'Gene: {gene}. Entering high offtarget mode, from {medium_Noff} to {high_Noff} allowed offtarget hits to the same gene, after only finding {len(results["selected_probes"])} probes.')
         results = _select_probes(results, high_Noff, allow_overlapping=False) #No overlap because probes will then preferentially go to the offtarget transcripts. 
         level = '5_High_offtarget'
-        probe_origin.append(len(results['selected_probes']) - probe_origin[-1])
+        probe_origin.append(len(results['selected_probes']) - sum(probe_origin))
     
     if len(results['selected_probes']) < min_probes:
         level = '6_Few_probes'
@@ -595,18 +595,18 @@ def obtainBooleanlist2(gene, data_gene, verbose=False):
     return gene, results['selected_probes'], results['nt_overlap'], level, probe_origin
 
 
-#if len(dic_dataframes):
-#    import multiprocessing
-#    #num_cpu = multiprocessing.cpu_count()
-#    num_cpu = ncores
-#    from joblib import Parallel, delayed
-#    #log.info('Genes',genes)
-#    result1 = Parallel(n_jobs=num_cpu)(delayed(obtainBooleanlist2)(g, dic_dataframes[g]) for g in genes)
-#else:
-#    log.info("Not probes after blast")
+if len(dic_dataframes):
+    import multiprocessing
+    #num_cpu = multiprocessing.cpu_count()
+    num_cpu = ncores
+    from joblib import Parallel, delayed
+    #log.info('Genes',genes)
+    result1 = Parallel(n_jobs=num_cpu)(delayed(obtainBooleanlist2)(g, dic_dataframes[g]) for g in genes)
+else:
+    log.info("Not probes after blast")
 
 #Temporary bypass
-result1 = [obtainBooleanlist2(g, dic_dataframes[g]) for g in genes]
+#result1 = [obtainBooleanlist2(g, dic_dataframes[g]) for g in genes]
 
 
 stop = timeit.default_timer()
