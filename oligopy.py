@@ -608,7 +608,6 @@ else:
 #Temporary bypass
 #result1 = [obtainBooleanlist2(g, dic_dataframes[g]) for g in genes]
 
-
 stop = timeit.default_timer()
 log.info(f"Time to eliminate cross-hybridizing probes: {round(stop - start)} sec")
 #################################################################### Perform analysis on output  ###############################################################
@@ -647,15 +646,15 @@ for g in genes:
                                  new_Data_for_analysis["Probe_overlapping_nucleotides"].sum(),
                                  new_Data_for_analysis["Max_offtarget_mapping_percentage"].describe().iloc[1],
                                  new_Data_for_analysis["Max_offtarget_mapping_percentage"].describe().iloc[2],
-                                 new_Data_for_analysis['Processing_level'].iloc[0],
-                                 new_Data_for_analysis['Probe_origin'].iloc[0] ]
+                                 new_Data_for_analysis['Processing_level'].mode().iloc[0],
+                                 new_Data_for_analysis['Probe_origin'].mode().iloc[0] ]
     dic_of_lists[g] = list_probe_g_features
 data_features = pd.DataFrame(dic_of_lists)
 data_features = data_features.set_index([["Number of Probes", "Min PNAS Rules", "Max Allowed Identity", "Mean Location", "STD Location", "Min Location",
                                               "Max Location", "Mean Tm", "STD Tm", "Mean GC%", "STD GC%", "Mean DeltaG",
                                               "STD DeltaG", "Mean Max Offtarget Hit", "Max Max Offtarget Hit", "Probe overlapping nucleotides",
-                                              "Mean Max_offtarget_mapping_percentage", "STD Max_offtarget_mapping_percentage", "Probe selection difficulty",
-                                              "Probe origin step"]])
+                                              "Mean Max_offtarget_mapping_percentage", "STD Max_offtarget_mapping_percentage", "Probe selection difficulty mode",
+                                              "Probe origin step mode"]])
 
 ###Output
 data_features.to_excel(f"{result_folder}/{dic_input['out']}_features_probes.xlsx")

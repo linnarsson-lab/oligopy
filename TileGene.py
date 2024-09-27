@@ -127,7 +127,10 @@ def Blast2Dic3(file_blast, transcript_to_gene_dict):
         i = int(probe_id.split('_')[-1])
         #Get the query gene name (NOT FBgn!!!)
         query_gene = probe_id.split(f'_iLoc:_{i}')[0]
-        #Future content: soform_Hits, Other_Hits, Identity_Other_Hits, Max_Other_Hit_Identity
+        #Strip aditions to gene name
+        if '_NM' in probe_id:
+            query_gene = query_gene.split(f'_NM')[0]
+        #Future content: isoform_Hits, Other_Hits, Identity_Other_Hits, Max_Other_Hit_Identity
         dic_blast_res[i] = []
         
         #Make filter for hits of isoforms
