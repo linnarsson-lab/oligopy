@@ -269,46 +269,6 @@ def swap_value(arr, value):
     arr[i], arr[j] = arr[j], arr[i]
     return arr
 
-
-def optimize_gene_barcode_evolution(genes, codebook, df_exp, cycles = None, 
-                                    depth=1, maxiter=10, max_plateau=2,
-                                    plot=True,  save_folder=None):
-    """
-    Function to optimize how genes are divided over the possible barcodes.
-    Given a binary code book, the function will randomly shuffle the genes and
-    with the df_exp expression matrix it will sum the expression level of the
-    genes that are co-labeled in the same cycle. For the number of trials it
-    will return the permutation that has the lowest max expression in a cell
-    type over all cycles. 
-    The function can also take multiple dataframes as a list in df_exp, if you
-    want to find the best solution for multiple expression matrices. 
-    
-    This is a stupid brute force way to find a better gene distribution and has
-    no guarantee that it is optimal. But considering this has to only run once
-    
-    
-    Args:
-    genes (list): List of genes. Empty barcodes should be added as gene names
-        with this format: `Empty_barcode_X`
-    codebook (array): Boolean array containing the barcodes. Number of rows
-        equals the number of genes, colums is the number of cycles.
-    df_exp (dataframe): List of dataframe(s) with mean, max or quantile 
-        expression per cell type. Genes as index, cell types as columns.
-    depth
-    maxiter
-    max_plateau
-    plot (bool): Plots summary statistics of all trials and best trial.
-    
-    Returns:
-    best_gene_order (array): Order of genes that gives the lowest max
-        expression over all cell types and cycles for the given barcodes.
-    results_dict(dict): list with results dictionaries. Individual 
-        dictionaries have the following keys:
-        - gene_order: Array with shuffled gene order.
-        - full_results: Array with summed expression for each cycle.
-        - max_result: Maximum value for each dataframe in df_exp
-    
-    """  
 def optimize_gene_barcode_evolution(genes, codebook, df_exp, cycles=None,
                                     depth=1, maxiter=10, max_plateau=2,
                                     plot=True, save_folder=None):
