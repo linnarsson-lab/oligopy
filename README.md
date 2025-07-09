@@ -169,7 +169,7 @@ Add the executable path to the `variables.ini` file.
 
 Example run with default parameters: `python oligopy.py -query codebookMouse448.xlsx -db Mus_musculus.fa -ncores 12 -db_species mouse -probe_type twist -out Probes`
   
-Input can be <s>a fasta file with defined sequences</s>, or excel with a column "Gene" and "Tail1" ... "TailN" columns containing the readouts to assign to each gene.
+Input can be a fasta file with defined sequences, or excel with a column "Gene" and "Tail1" ... "TailN" columns containing the readouts to assign to each gene.
   
 `oligopy.py`   
 `-h`, show this help message and exit  

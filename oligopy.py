@@ -107,8 +107,14 @@ if input_file.count('.xlsx'):
     #Write codebook to output folder
     codebook.to_excel(f'{result_folder}/{input_file}')
     input_file = result_folder + '/' +  input_file.split('.')[0]+'_Markers.fasta'
-else:
+#If input is fasta, just rename with same naming convention as `generate_fasta()`.
+elif input_file.endswith('.fasta') or input_file.endswith('.fa'):
+    new_input_fname = result_folder + '/' +  input_file.split('.')[0]+'_Markers.fasta'
+    shutil.copy(input_file, new_input_fname)
+    input_file = new_input_fname
     assign_tails = "F"
+else:
+    log.info(f'Did not understand input: {input_file}. Input should be an .xlsx codebook, or a .fasta file with reference sequences')
 
 if padlock == 'T':
     minSize,maxSize,size = 30,30,30

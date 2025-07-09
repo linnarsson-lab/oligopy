@@ -218,7 +218,7 @@ def GetDataFrameProbes(input_fasta, size = 30, start = 0, end = None, MinSize = 
     genes = {}
     for seq in SeqIO.parse(input_fasta, "fasta"):
         gene_ENS = "_".join(seq.description.split(" "))
-        genes[gene_ENS] = seq.seq
+        genes[gene_ENS] = seq.seq.upper()
     result = Parallel(n_jobs=cores_n)(delayed(processingFastaProbes)(i, genes[i], size, start, end, MinSize, MaxSize,TmMin, cat1_conc) for i in genes.keys())
     col_names = ["Gene", "Probe", "Location", "Size", "Tm", "GC", "HomoDimer_dG", "Hairpin_dG", "DeltaG"]
     list_probes = sum(result, [])
